@@ -1,0 +1,15 @@
+*.backup-*
+*.bak-*
+*.log
+*.swo
+*.swp
+*.tmp
+*.zip
+*~
+
+.DS_Store
+.codex/
+.config/
+.local/
+.tmux.conf*
+/TODO.md

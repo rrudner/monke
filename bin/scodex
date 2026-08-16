@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}/scriptorium
+preferences_file=$config_dir/preferences
+
+read_pref() {
+    local key=$1 default=$2 value
+    value=$(sed -n "s/^${key}=//p" "$preferences_file" 2>/dev/null | tail -n 1)
+    if [[ -n $value ]]; then
+        printf '%s\n' "$value"
+    else
+        printf '%s\n' "$default"
+    fi
+}
+
+configured_repo=$(read_pref repo_dir "")
+if [[ -n $configured_repo && -d $configured_repo/.git ]]; then
+    repo_dir=$configured_repo
+fi
+
+case ${1:-} in
+    update)
+        SCRIPTORIUM_MANUAL_UPDATE=1 \
+            SCRIPTORIUM_SKIP_SNOOZE_CHECK=1 \
+            "$repo_dir/scripts/update-repository.sh" apply || true
+        exit 0
+        ;;
+    configure)
+        shift
+        "$repo_dir/install.sh" "$@"
+        exit $?
+        ;;
+    tools)
+        shift
+        tools_manager=$repo_dir/scripts/tools-manager.sh
+        if [[ -x $tools_manager ]]; then
+            tools_action=${1:-status}
+            "$tools_manager" "$@"
+            case $tools_action in
+                configure|update|remove|clear)
+                    "$repo_dir/codex/scripts/render-agents.sh"
+                    ;;
+            esac
+            exit 0
+        fi
+        printf 'scodex: tools manager is not available.\n'
+        exit 1
+        ;;
+esac
+
+skip_update=0
+if [[ ${1:-} == --no-update ]]; then
+    skip_update=1
+    shift
+fi
+
+profile=hard
+case ${1:-} in
+    --cheap|cheap) profile=cheap; shift ;;
+    --normal|normal) profile=normal; shift ;;
+    --hard|hard) profile=hard; shift ;;
+esac
+
+tools_env=$config_dir/tools-env.sh
+if [[ -f $tools_env ]]; then
+    source "$tools_env"
+else
+    export SCRIPTORIUM_ACTIVE=1 SCRIPTORIUM_TOOLS=
+fi
+
+if (( ! skip_update )) && [[ $(read_pref update_check "$(read_pref auto_update 1)") != 0 ]]; then
+    SCRIPTORIUM_MANUAL_UPDATE=1 "$repo_dir/scripts/update-repository.sh" check || true
+fi
+
+tools_manager=$repo_dir/scripts/tools-manager.sh
+if [[ -x $tools_manager ]]; then
+    "$tools_manager" check || true
+fi
+
+if ! command -v codex >/dev/null 2>&1; then
+    printf 'scodex: codex is not installed or is missing from PATH.\n' >&2
+    exit 127
+fi
+
+exec codex --profile "scriptorium-$profile" "$@"

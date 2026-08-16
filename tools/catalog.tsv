@@ -1,0 +1,10 @@
+# name	command	mise-id	default	tier
+ripgrep	rg	ripgrep	1	core
+fd	fd	fd	1	core
+jq	jq	jq	1	core
+yq	yq	yq	1	core
+shellcheck	shellcheck	shellcheck	1	core
+gh	gh	gh	0	advanced
+sops	sops	sops	0	advanced
+hyperfine	hyperfine	hyperfine	0	advanced
+just	just	just	0	advanced
