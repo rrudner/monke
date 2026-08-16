@@ -64,6 +64,13 @@ command_version() {
     printf '%s\n' "$output" | tr '\t\n' '  '
 }
 
+system_command_path() {
+    local command_name=$1 command_path
+    command_path=$(command -v "$command_name" 2>/dev/null || true)
+    [[ -n $command_path && $command_path != "$data_root/mise/shims/"* ]] || return 1
+    printf '%s\n' "$command_path"
+}
+
 write_runtime_files() {
     local name command_name mise_id default tier label description provider version local_installed=0
     local state_tmp config_tmp env_tmp capabilities_tmp
@@ -80,7 +87,7 @@ write_runtime_files() {
 
     while IFS=$'\t' read -r name command_name mise_id default tier label description; do
         selected "$name" || continue
-        if command -v "$command_name" >/dev/null 2>&1; then
+        if system_command_path "$command_name" >/dev/null; then
             provider=system
             version=$(command_version "$command_name")
         elif [[ $mise_id == - ]]; then

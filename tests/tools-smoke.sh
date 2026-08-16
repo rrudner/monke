@@ -51,11 +51,18 @@ esac
 EOF
 chmod +x "$runtime_dir/mise"
 export MISE_TEST_LOG=$test_root/mise.log
-PATH="$test_root/bin:/usr/bin:/bin" HOME="$local_home" "$repo_dir/scripts/tools-manager.sh" configure --select just \
+shim_dir=$local_home/.local/share/scriptorium/mise/shims
+mkdir -p -- "$shim_dir"
+cat >"$shim_dir/just" <<'EOF'
+#!/usr/bin/env bash
+printf 'mise shim\n'
+EOF
+chmod +x "$shim_dir/just"
+PATH="$shim_dir:$test_root/bin:/usr/bin:/bin" HOME="$local_home" "$repo_dir/scripts/tools-manager.sh" configure --select just \
     >"$test_root/local-configure.log"
 grep -q $'^just\tlocal\t1.2.3\tjust$' \
     "$local_home/.config/scriptorium/tools.state"
-grep -q 'mise/shims' "$local_home/.config/scriptorium/tools-env.sh"
+grep -q 'export PATH=.*mise/shims' "$local_home/.config/scriptorium/tools-env.sh"
 grep -q '^install just@1.2.3$' "$MISE_TEST_LOG"
 PATH="$test_root/bin:/usr/bin:/bin" HOME="$local_home" "$repo_dir/scripts/tools-manager.sh" remove just \
     >"$test_root/local-remove.log"
