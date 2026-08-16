@@ -19,7 +19,7 @@ mise_arm64_sha=f9bd051912beb8861bf248289bfb2d8c281ff00fcdf1e44d730b8ea7e859e9a4
 
 mkdir -p -- "$config_root" "$data_root/runtime" "$cache_root" "$state_root"
 
-catalog_rows() { awk -F '\t' '!/^#/ && NF >= 5' "$catalog"; }
+catalog_rows() { awk -F '\t' '!/^#/ && NF >= 7' "$catalog"; }
 selected() { grep -Fqx -- "$1" "$selected_file" 2>/dev/null; }
 
 bootstrap_mise() {
@@ -65,7 +65,7 @@ command_version() {
 }
 
 write_runtime_files() {
-    local name command_name mise_id default tier provider version local_installed=0
+    local name command_name mise_id default tier label description provider version local_installed=0
     local state_tmp config_tmp env_tmp capabilities_tmp
     state_tmp=$(mktemp "$config_root/.tools-state.XXXXXX")
     config_tmp=$(mktemp "$config_root/.mise-config.XXXXXX")
@@ -78,7 +78,7 @@ write_runtime_files() {
     printf '%s\n' '""' >>"$env_tmp"
     printf '%s\n' '### Available Scriptorium tools' >"$capabilities_tmp"
 
-    while IFS=$'\t' read -r name command_name mise_id default tier; do
+    while IFS=$'\t' read -r name command_name mise_id default tier label description; do
         selected "$name" || continue
         if command -v "$command_name" >/dev/null 2>&1; then
             provider=system
@@ -101,7 +101,7 @@ write_runtime_files() {
             fi
         fi
         printf '%s\t%s\t%s\t%s\n' "$name" "$provider" "$version" "$command_name" >>"$state_tmp"
-        printf -- '- `%s` (`%s`): %s, %s\n' "$name" "$command_name" "$provider" "$version" \
+        printf -- '- `%s` (`%s`): %s, %s — %s\n' "$name" "$command_name" "$provider" "$version" "$description" \
             >>"$capabilities_tmp"
     done < <(catalog_rows)
 
@@ -126,22 +126,22 @@ write_runtime_files() {
 }
 
 configure_text() {
-    local explicit=${1:-} name command_name mise_id default tier answer chosen_tmp
+    local explicit=${1:-} name command_name mise_id default tier label description answer chosen_tmp
     chosen_tmp=$(mktemp "$config_root/.tools-selected.XXXXXX")
     if [[ -n $explicit ]]; then
         tr ',' '\n' <<<"$explicit" | sed '/^$/d' >"$chosen_tmp"
     else
-        while IFS=$'\t' read -r name command_name mise_id default tier; do
+        while IFS=$'\t' read -r name command_name mise_id default tier label description; do
             if [[ $tier == available-only ]] && ! command -v "$command_name" >/dev/null 2>&1; then
-                printf '%-12s unavailable (not installed)\n' "$name"
+                printf '%-12s unavailable (not installed): %s\n' "$label" "$description"
                 continue
             fi
             if selected "$name"; then default=1; fi
             if [[ $default == 1 ]]; then
-                read -r -p "Enable $name? [Y/n] " answer
+                read -r -p "Enable $label — $description? [Y/n] " answer
                 [[ ${answer,,} == n || ${answer,,} == no ]] || printf '%s\n' "$name" >>"$chosen_tmp"
             else
-                read -r -p "Enable $name? [y/N] " answer
+                read -r -p "Enable $label — $description? [y/N] " answer
                 [[ ${answer,,} == y || ${answer,,} == yes ]] && printf '%s\n' "$name" >>"$chosen_tmp"
             fi
         done < <(catalog_rows)
@@ -152,10 +152,11 @@ configure_text() {
 }
 
 configure_tui() {
-    local -a names commands defaults tiers marks enabled
-    local name command_name mise_id default tier index=0 key count line
-    while IFS=$'\t' read -r name command_name mise_id default tier; do
+    local -a names labels descriptions commands defaults tiers marks enabled
+    local name command_name mise_id default tier label description index=0 key count line
+    while IFS=$'\t' read -r name command_name mise_id default tier label description; do
         names+=("$name"); commands+=("$command_name"); defaults+=("$default"); tiers+=("$tier")
+        labels+=("$label"); descriptions+=("$description")
         if [[ $tier == available-only ]] && ! command -v "$command_name" >/dev/null 2>&1; then
             marks+=(0); enabled+=(0)
         elif selected "$name" || [[ $default == 1 ]]; then
@@ -172,11 +173,11 @@ configure_tui() {
         for ((line=0; line<count; line++)); do
             [[ $line == $index ]] && printf '> ' || printf '  '
             if [[ ${enabled[line]} == 0 ]]; then
-                printf '[-] %-12s not installed\n' "${names[line]}"
+                printf '[-] %-12s not installed — %s\n' "${labels[line]}" "${descriptions[line]}"
             elif [[ ${marks[line]} == 1 ]]; then
-                printf '[x] %s\n' "${names[line]}"
+                printf '[x] %s — %s\n' "${labels[line]}" "${descriptions[line]}"
             else
-                printf '[ ] %s\n' "${names[line]}"
+                printf '[ ] %s — %s\n' "${labels[line]}" "${descriptions[line]}"
             fi
         done
         IFS= read -rsn1 key

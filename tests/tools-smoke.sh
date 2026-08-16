@@ -23,6 +23,7 @@ state=$test_root/home/.config/scriptorium/tools.state
 awk -F '\t' '$2 != "system" {exit 1}' "$state"
 grep -q '`ripgrep` (`rg`): system' \
     "$test_root/home/.config/scriptorium/capabilities.md"
+grep -q 'Fast recursive text search' "$test_root/home/.config/scriptorium/capabilities.md"
 [[ ! -e $test_root/home/.local/share/scriptorium/runtime/mise ]]
 
 PATH="$test_root/bin:$PATH" HOME="$test_root/home" \
@@ -50,14 +51,16 @@ esac
 EOF
 chmod +x "$runtime_dir/mise"
 export MISE_TEST_LOG=$test_root/mise.log
-HOME="$local_home" "$repo_dir/scripts/tools-manager.sh" configure --select just \
+PATH="$test_root/bin:/usr/bin:/bin" HOME="$local_home" "$repo_dir/scripts/tools-manager.sh" configure --select just \
     >"$test_root/local-configure.log"
 grep -q $'^just\tlocal\t1.2.3\tjust$' \
     "$local_home/.config/scriptorium/tools.state"
 grep -q 'mise/shims' "$local_home/.config/scriptorium/tools-env.sh"
 grep -q '^install just@1.2.3$' "$MISE_TEST_LOG"
-HOME="$local_home" "$repo_dir/scripts/tools-manager.sh" remove just \
+PATH="$test_root/bin:/usr/bin:/bin" HOME="$local_home" "$repo_dir/scripts/tools-manager.sh" remove just \
     >"$test_root/local-remove.log"
 grep -q '^uninstall just@1.2.3$' "$MISE_TEST_LOG"
+
+"$repo_dir/scripts/generate-tools-readme.sh" --check
 
 printf 'Tool smoke tests passed.\n'

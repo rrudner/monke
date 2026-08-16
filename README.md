@@ -94,13 +94,19 @@ Git, or installation failures never prevent Codex from starting.
 
 ## Optional tools
 
-| Default on | Default off |
-|---|---|
-| ripgrep (`rg`) | GitHub CLI (`gh`) |
-| fd | SOPS |
-| jq | hyperfine |
-| yq | just |
-| ShellCheck | |
+<!-- BEGIN GENERATED OPTIONAL TOOLS -->
+| Tool | Purpose | Selected by default |
+|---|---|:---:|
+| ripgrep (`rg`) | Fast recursive text search | Yes |
+| fd | Fast and convenient file search | Yes |
+| jq | Query and transform JSON | Yes |
+| yq | Query and transform YAML | Yes |
+| ShellCheck | Find problems in shell scripts | Yes |
+| GitHub CLI | Work with GitHub repositories and pull requests | No |
+| SOPS | Encrypt configuration files and secrets | No |
+| hyperfine | Benchmark commands | No |
+| just | Run project commands defined in a `justfile` | No |
+<!-- END GENERATED OPTIONAL TOOLS -->
 
 The optional-tools module itself is disabled by default. Once enabled, existing system commands
 win. Missing tools are installed without administrator access through a pinned,
