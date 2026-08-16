@@ -38,9 +38,9 @@ install_posix_style() {
     remove_legacy_tmux_block "$target"
     block=$(mktemp "$(dirname -- "$target")/.scriptorium-shell-block.XXXXXX")
     {
-        printf 'case ":\$PATH:" in\n'
+        printf 'case ":$PATH:" in\n'
         printf '    *":%s:"*) ;;\n' "$local_bin"
-        printf '    *) export PATH="%s:\$PATH" ;;\n' "$local_bin"
+        printf '    *) export PATH="%s:$PATH" ;;\n' "$local_bin"
         printf 'esac\n'
         if [[ $enable_tmux == 1 ]]; then
             cat <<'EOF'

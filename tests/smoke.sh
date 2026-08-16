@@ -105,6 +105,25 @@ grep -q '^fish_add_path ' "$fish_home/.config/fish/conf.d/scriptorium.fish"
 grep -q 'tmux new-session -A -s main' "$fish_home/.config/fish/conf.d/scriptorium.fish"
 [[ ! -e $fish_home/.codex/config.toml ]]
 
+path_hook_home=$test_root/path-hook-home
+mkdir -p -- "$path_hook_home/.local/bin"
+PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$path_hook_home" \
+    "$repo_dir/scripts/install-shell-hook.sh" >"$test_root/path-hook-bash-install.log"
+[[ ! -L $path_hook_home/.bashrc ]]
+! grep -q '\\$PATH' "$path_hook_home/.bashrc"
+bash_path=$(PATH="runtime-base-path:/usr/bin:/bin" SHELL=/bin/bash HOME="$path_hook_home" \
+    bash -c 'source "$HOME/.bashrc"; printf "%s" "$PATH"')
+[[ $bash_path == "$path_hook_home/.local/bin:runtime-base-path:/usr/bin:/bin" ]]
+PATH="$test_root/bin:$PATH" SHELL=/bin/zsh HOME="$path_hook_home" SCRIPTORIUM_SHELL=zsh \
+    "$repo_dir/scripts/install-shell-hook.sh" >"$test_root/path-hook-zsh-install.log"
+[[ ! -L $path_hook_home/.zshrc ]]
+! grep -q '\\$PATH' "$path_hook_home/.zshrc"
+if command -v zsh >/dev/null 2>&1; then
+    zsh_path=$(PATH="runtime-zsh-path:/usr/bin:/bin" SHELL=/bin/zsh HOME="$path_hook_home" \
+        zsh -fc 'source "$HOME/.zshrc"; print -r -- "$PATH"')
+    [[ $zsh_path == "$path_hook_home/.local/bin:runtime-zsh-path:/usr/bin:/bin" ]]
+fi
+
 rollback_home=$test_root/rollback-home
 mkdir -p -- "$rollback_home/.codex" "$rollback_home/.config/scriptorium"
 cat >"$rollback_home/.config/scriptorium/preferences" <<'EOF'
@@ -261,7 +280,7 @@ cp -- "$repo_dir/uninstall.sh" "$repo_remove_dir/uninstall.sh"
 chmod 700 -- "$repo_remove_dir/uninstall.sh"
 git -C "$repo_remove_dir" add -- uninstall.sh
 git -C "$repo_remove_dir" -c user.name=Smoke -c user.email=smoke@example.invalid \
-    commit -qm 'Add uninstall fixture'
+    commit --allow-empty -qm 'Add uninstall fixture'
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$repo_remove_home" \
 CODEX_HOME="$repo_remove_home/.codex" \
     "$repo_remove_dir/install.sh" --without-tools --shell bash >"$test_root/repo-remove-install.log"
