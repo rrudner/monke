@@ -60,7 +60,7 @@ tools=1
 shell=bash
 shell_rc=
 EOF
-printf 'ripgrep\n' >"$HOME/.config/scriptorium/tools.selected"
+printf '%s\n' ripgrep fd jq yq shellcheck >"$HOME/.config/scriptorium/tools.selected"
 
 export CODEX_TEST_LOG=$codex_log
 
@@ -87,6 +87,16 @@ if ! grep -q 'new optional tools are available: future-tool' "$test_root/update-
     head -20 "$test_root/update-output.log" >&2
     exit 1
 fi
+grep -qx 'future-tool' \
+    "$HOME/.local/state/scriptorium/tools-reconfigure-required"
+grep -qx 'ast-grep' \
+    "$HOME/.local/state/scriptorium/tools-reconfigure-required"
+
+# Non-interactive launches report the exact additions without clearing the pending review.
+CODEX_TEST_LOG=$test_root/pending-launch.log "$repo_dir/bin/scodex" normal \
+    >"$test_root/pending-output.log"
+grep -q 'new optional tools require your selection: ast-grep,future-tool' \
+    "$test_root/pending-output.log"
 grep -qx 'future-tool' \
     "$HOME/.local/state/scriptorium/tools-reconfigure-required"
 

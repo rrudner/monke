@@ -160,6 +160,9 @@ if [[ $tools_choice == 1 ]]; then
         "$repo_dir/scripts/tools-manager.sh" configure
     else
         "$repo_dir/scripts/tools-manager.sh" apply
+        if [[ $mode == saved ]]; then
+            "$repo_dir/scripts/tools-manager.sh" reconcile
+        fi
     fi
 else
     "$repo_dir/scripts/tools-manager.sh" clear

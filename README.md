@@ -103,7 +103,8 @@ Git, or installation failures never prevent Codex from starting.
 
 When an update adds optional tools, Scriptorium reports their names. If optional tools are
 enabled, the next interactive `scodex` launch reopens the complete selector with existing choices
-preselected; non-interactive launches keep the selection pending and show the command to run.
+preselected. New entries are labeled `(new)` and remain unchecked until selected explicitly;
+non-interactive launches keep the selection pending and show the command to run.
 
 ## Optional tools
 

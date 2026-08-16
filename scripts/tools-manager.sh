@@ -197,14 +197,18 @@ configure_text() {
 }
 
 configure_tui() {
-    local -a names labels descriptions commands defaults tiers marks enabled
-    local name command_name mise_id default tier label description index=0 key count line
+    local review=${1:-0} new_names=${2:-}
+    local -a names labels descriptions commands defaults tiers marks enabled new_flags
+    local name command_name mise_id default tier label description index=0 key count line is_new
     while IFS=$'\t' read -r name command_name mise_id default tier label description; do
         names+=("$name"); commands+=("$command_name"); defaults+=("$default"); tiers+=("$tier")
         labels+=("$label"); descriptions+=("$description")
+        is_new=0
+        [[ ,$new_names, == *,$name,* ]] && is_new=1
+        new_flags+=("$is_new")
         if [[ $tier == available-only ]] && ! command -v "$command_name" >/dev/null 2>&1; then
             marks+=(0); enabled+=(0)
-        elif selected "$name" || [[ $default == 1 ]]; then
+        elif selected "$name" || [[ $review != 1 && $default == 1 ]]; then
             marks+=(1); enabled+=(1)
         else
             marks+=(0); enabled+=(1)
@@ -214,15 +218,22 @@ configure_tui() {
     printf '\033[?25l'
     trap 'printf "\033[?25h"' RETURN
     while true; do
-        printf '\033[H\033[2JSelect tools (arrows, space, Enter):\n\n'
+        if [[ $review == 1 ]]; then
+            printf '\033[H\033[2JReview tools after update (arrows, space, Enter).\n'
+            printf 'New tools: %s\nOnly your current selection is preselected.\n\n' "$new_names"
+        else
+            printf '\033[H\033[2JSelect tools (arrows, space, Enter):\n\n'
+        fi
         for ((line=0; line<count; line++)); do
             [[ $line == $index ]] && printf '> ' || printf '  '
+            label=${labels[line]}
+            [[ ${new_flags[line]} == 1 ]] && label="$label (new)"
             if [[ ${enabled[line]} == 0 ]]; then
-                printf '[-] %-12s not installed — %s\n' "${labels[line]}" "${descriptions[line]}"
+                printf '[-] %-12s not installed — %s\n' "$label" "${descriptions[line]}"
             elif [[ ${marks[line]} == 1 ]]; then
-                printf '[x] %s — %s\n' "${labels[line]}" "${descriptions[line]}"
+                printf '[x] %s — %s\n' "$label" "${descriptions[line]}"
             else
-                printf '[ ] %s — %s\n' "${labels[line]}" "${descriptions[line]}"
+                printf '[ ] %s — %s\n' "$label" "${descriptions[line]}"
             fi
         done
         IFS= read -rsn1 key
@@ -299,6 +310,7 @@ action=${1:-status}; shift || true
 case $action in
     configure)
         if [[ ${1:-} == --select ]]; then configure_text "${2:-}"
+        elif [[ ${1:-} == --review && -t 0 && -t 1 ]]; then configure_tui 1 "${2:-}"
         elif [[ -t 0 && -t 1 ]]; then configure_tui
         else printf 'Non-interactive configuration requires --select NAME[,NAME...].\n' >&2; exit 2
         fi

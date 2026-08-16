@@ -24,8 +24,7 @@ review_pending_tools() {
     pending_names=$(paste -sd, "$pending_tools")
     printf 'scodex: new optional tools require your selection: %s\n' "$pending_names"
     if [[ -t 0 && -t 1 && -x $tools_manager ]]; then
-        printf 'Review the complete tool list; existing choices are preselected.\n'
-        if "$tools_manager" configure; then
+        if "$tools_manager" configure --review "$pending_names"; then
             "$repo_dir/codex/scripts/render-agents.sh"
             rm -f -- "$pending_tools"
             source "$tools_env"

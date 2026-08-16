@@ -80,11 +80,15 @@ PATH="$test_root/bin:$PATH" HOME="$legacy_home" \
     "$repo_dir/scripts/tools-manager.sh" reconcile
 grep -qx ast-grep \
     "$legacy_home/.local/state/scriptorium/tools-reconfigure-required"
-PATH="$test_root/bin:$PATH" HOME="$legacy_home" \
-    "$repo_dir/scripts/tools-manager.sh" configure --select ripgrep,ast-grep \
+printf '\n' | PATH="$test_root/bin:$PATH" HOME="$legacy_home" \
+    script -qec "'$repo_dir/scripts/tools-manager.sh' configure --review ast-grep" /dev/null \
     >"$test_root/legacy-configure.log"
 [[ ! -e $legacy_home/.local/state/scriptorium/tools-reconfigure-required ]]
 grep -qx ast-grep "$legacy_home/.config/scriptorium/tools.catalog-reviewed"
+grep -q 'New tools: ast-grep' "$test_root/legacy-configure.log"
+grep -q 'ast-grep (new)' "$test_root/legacy-configure.log"
+grep -qx ripgrep "$legacy_home/.config/scriptorium/tools.selected"
+! grep -qx ast-grep "$legacy_home/.config/scriptorium/tools.selected"
 
 "$repo_dir/scripts/generate-tools-readme.sh" --check
 
