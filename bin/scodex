@@ -32,6 +32,10 @@ case ${1:-} in
         "$repo_dir/install.sh" "$@"
         exit $?
         ;;
+    uninstall)
+        shift
+        exec "$repo_dir/uninstall.sh" "$@"
+        ;;
     tools)
         shift
         tools_manager=$repo_dir/scripts/tools-manager.sh

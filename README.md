@@ -37,6 +37,14 @@ scodex configure
 
 For unattended installation and all available flags, run `./install.sh --help`.
 
+## Uninstall
+
+Run `scodex uninstall` and confirm the prompt, or use `scodex uninstall --yes` for automation.
+It removes only matching Scriptorium assets and marker-managed integration, retaining user files,
+timestamped backups, and modified assets. A clean repository in the default data location is
+removed last; pass `--keep-repo` to retain it. Invalid markers or symbolic-link paths stop before
+any file is changed.
+
 ## Everyday commands
 
 ```bash
@@ -48,6 +56,7 @@ scodex --no-update             # Skip one repository update check
 
 scodex update                  # Install the available repository update
 scodex configure               # Change saved integration choices
+scodex uninstall --keep-repo   # Remove integration and keep this repository
 scodex tools configure         # Select optional tools in a terminal UI
 scodex tools status            # Show active tools and their providers
 scodex tools update            # Update locally managed tools
