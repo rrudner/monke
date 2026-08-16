@@ -43,6 +43,7 @@ grep -q 'tmux new-session -A -s main' "$test_root/home/.bashrc"
 grep -qx 'tmux=1' "$test_root/home/.config/scriptorium/preferences"
 grep -qx 'update_check=1' "$test_root/home/.config/scriptorium/preferences"
 grep -qx 'tools=0' "$test_root/home/.config/scriptorium/preferences"
+[[ -f "$test_root/home/.config/scriptorium/tools.catalog-reviewed" ]]
 
 backup_count=$(find "$test_root/home" -name '*.backup-*' | wc -l)
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$test_root/home" \
@@ -172,6 +173,7 @@ CODEX_HOME="$uninstall_home/.codex" \
 [[ ! -e $uninstall_home/.codex/skills/reuse-first ]]
 [[ ! -e $uninstall_home/.local/bin/scodex ]]
 [[ ! -e $uninstall_home/.config/scriptorium/preferences ]]
+[[ ! -e $uninstall_home/.config/scriptorium/tools.catalog-reviewed ]]
 [[ ! -e $uninstall_home/.config/fish/conf.d/scriptorium.fish ]]
 grep -qx '# Personal Codex settings' "$uninstall_home/.codex/config.toml"
 grep -qx 'keep this user file' "$uninstall_home/.config/scriptorium/custom.txt"

@@ -12,6 +12,8 @@ state_file=$config_root/tools.state
 mise_config=$config_root/mise.toml
 env_file=$config_root/tools-env.sh
 capabilities_file=$config_root/capabilities.md
+reviewed_catalog_file=$config_root/tools.catalog-reviewed
+pending_catalog_file=$state_root/tools-reconfigure-required
 mise_bin=$data_root/runtime/mise
 mise_version=2026.8.6
 mise_x64_sha=96f6f1f416d868b78addd22746eefc7f4bf7820c6a3afa392a9f653f708c1644
@@ -20,7 +22,42 @@ mise_arm64_sha=f9bd051912beb8861bf248289bfb2d8c281ff00fcdf1e44d730b8ea7e859e9a4
 mkdir -p -- "$config_root" "$data_root/runtime" "$cache_root" "$state_root"
 
 catalog_rows() { awk -F '\t' '!/^#/ && NF >= 7' "$catalog"; }
+catalog_names() { catalog_rows | cut -f1 | sort -u; }
 selected() { grep -Fqx -- "$1" "$selected_file" 2>/dev/null; }
+
+record_catalog_review() {
+    local reviewed_tmp
+    reviewed_tmp=$(mktemp "$config_root/.tools-catalog-reviewed.XXXXXX")
+    catalog_names >"$reviewed_tmp"
+    mv -- "$reviewed_tmp" "$reviewed_catalog_file"
+    rm -f -- "$pending_catalog_file"
+    chmod 600 -- "$reviewed_catalog_file"
+}
+
+reconcile_catalog() {
+    local current_tmp previous_tmp new_tmp pending_tmp
+    current_tmp=$(mktemp "$config_root/.tools-catalog-current.XXXXXX")
+    previous_tmp=$(mktemp "$config_root/.tools-catalog-previous.XXXXXX")
+    new_tmp=$(mktemp "$config_root/.tools-catalog-new.XXXXXX")
+    catalog_names >"$current_tmp"
+    if [[ -s $reviewed_catalog_file ]]; then
+        sort -u -- "$reviewed_catalog_file" >"$previous_tmp"
+        comm -13 "$previous_tmp" "$current_tmp" >"$new_tmp"
+    elif [[ -s $selected_file ]]; then
+        awk -F '\t' '!/^#/ && NF >= 7 && $4 == 1 {print $1}' "$catalog" | sort -u \
+            | comm -23 - <(sort -u -- "$selected_file") >"$new_tmp"
+    fi
+    rm -f -- "$current_tmp" "$previous_tmp"
+    if [[ -s $new_tmp ]]; then
+        pending_tmp=$(mktemp "$state_root/.tools-reconfigure.XXXXXX")
+        {
+            cat -- "$pending_catalog_file" 2>/dev/null || true
+            cat -- "$new_tmp"
+        } | sed '/^$/d' | sort -u >"$pending_tmp"
+        mv -- "$pending_tmp" "$pending_catalog_file"
+    fi
+    rm -f -- "$new_tmp"
+}
 
 bootstrap_mise() {
     local arch asset sha url temp downloader
@@ -156,6 +193,7 @@ configure_text() {
     sort -u -- "$chosen_tmp" >"$selected_file"
     rm -f -- "$chosen_tmp"
     write_runtime_files
+    record_catalog_review
 }
 
 configure_tui() {
@@ -205,6 +243,7 @@ configure_tui() {
         [[ ${marks[line]} == 1 ]] && printf '%s\n' "${names[line]}" >>"$selected_file"
     done
     write_runtime_files
+    record_catalog_review
 }
 
 status_tools() {
@@ -267,7 +306,9 @@ case $action in
     clear)
         : >"$selected_file"
         write_runtime_files
+        record_catalog_review
         ;;
+    reconcile) reconcile_catalog ;;
     apply) write_runtime_files ;;
     status) status_tools ;;
     check) check_updates ;;

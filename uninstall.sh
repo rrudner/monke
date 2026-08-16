@@ -141,7 +141,8 @@ write_fish_expected "$fish_expected_tmux" 1
 for target in \
     "$preferences_file" "$config_dir/tmux.conf" "$config_dir/tools.selected" \
     "$config_dir/tools.state" "$config_dir/mise.toml" "$config_dir/tools-env.sh" \
-    "$config_dir/capabilities.md" "$state_dir/deployed-commit" "$state_dir/update.state" \
+    "$config_dir/capabilities.md" "$config_dir/tools.catalog-reviewed" \
+    "$state_dir/deployed-commit" "$state_dir/update.state" \
     "$state_dir/last-update.log" "$state_dir/update.lock" "$state_dir/tools-update-check" \
     "$state_dir/tools-reconfigure-required" \
     "$data_dir/repo" "$data_dir/runtime" "$data_dir/mise" "$cache_dir/mise" "$state_dir/mise" \
@@ -221,6 +222,7 @@ fi
 for target in \
     "$preferences_file" "$config_dir/tools.selected" "$config_dir/tools.state" \
     "$config_dir/mise.toml" "$config_dir/tools-env.sh" "$config_dir/capabilities.md" \
+    "$config_dir/tools.catalog-reviewed" \
     "$state_dir/deployed-commit" "$state_dir/update.state" "$state_dir/last-update.log" \
     "$state_dir/update.lock" "$state_dir/tools-update-check" \
     "$state_dir/tools-reconfigure-required"; do

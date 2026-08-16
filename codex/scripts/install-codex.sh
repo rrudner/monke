@@ -122,7 +122,7 @@ sed 's/\$scriptorium-delegate/\$delegate/' \
     "$package_dir/skills/scriptorium-delegate/agents/openai.yaml" >"$legacy_skill_yaml"
 if [[ -f $codex_home/skills/delegate/SKILL.md ]] \
     && -f $codex_home/skills/delegate/agents/openai.yaml \
-    && $(find "$codex_home/skills/delegate" -type f | wc -l) -eq 2 \
+    && [[ $(find "$codex_home/skills/delegate" -type f | wc -l) -eq 2 ]] \
     && cmp -s -- "$codex_home/skills/delegate/SKILL.md" "$legacy_skill" \
     && cmp -s -- "$codex_home/skills/delegate/agents/openai.yaml" "$legacy_skill_yaml"; then
     mv -- "$codex_home/skills/delegate" "$codex_home/skills/delegate.backup-$backup_stamp"

@@ -26,6 +26,8 @@ grep -q '`ripgrep` (`rg`): system' \
 grep -q 'Fast recursive text search' "$test_root/home/.config/scriptorium/capabilities.md"
 grep -q '`ast-grep` (`ast-grep`): system' \
     "$test_root/home/.config/scriptorium/capabilities.md"
+grep -qx ast-grep "$test_root/home/.config/scriptorium/tools.catalog-reviewed"
+[[ ! -e $test_root/home/.local/state/scriptorium/tools-reconfigure-required ]]
 [[ ! -e $test_root/home/.local/share/scriptorium/runtime/mise ]]
 
 PATH="$test_root/bin:$PATH" HOME="$test_root/home" \
@@ -69,6 +71,20 @@ grep -q '^install just@1.2.3$' "$MISE_TEST_LOG"
 PATH="$test_root/bin:/usr/bin:/bin" HOME="$local_home" "$repo_dir/scripts/tools-manager.sh" remove just \
     >"$test_root/local-remove.log"
 grep -q '^uninstall just@1.2.3$' "$MISE_TEST_LOG"
+
+# Users upgrading from a version without catalog-review state must be prompted for new defaults.
+legacy_home=$test_root/legacy-home
+mkdir -p -- "$legacy_home/.config/scriptorium"
+printf '%s\n' ripgrep fd jq yq shellcheck >"$legacy_home/.config/scriptorium/tools.selected"
+PATH="$test_root/bin:$PATH" HOME="$legacy_home" \
+    "$repo_dir/scripts/tools-manager.sh" reconcile
+grep -qx ast-grep \
+    "$legacy_home/.local/state/scriptorium/tools-reconfigure-required"
+PATH="$test_root/bin:$PATH" HOME="$legacy_home" \
+    "$repo_dir/scripts/tools-manager.sh" configure --select ripgrep,ast-grep \
+    >"$test_root/legacy-configure.log"
+[[ ! -e $legacy_home/.local/state/scriptorium/tools-reconfigure-required ]]
+grep -qx ast-grep "$legacy_home/.config/scriptorium/tools.catalog-reviewed"
 
 "$repo_dir/scripts/generate-tools-readme.sh" --check
 
