@@ -101,6 +101,10 @@ snoozed for 24 hours, while a newer commit is shown immediately.
 Updates are fast-forward-only and skipped when the working tree is dirty or divergent. Network,
 Git, or installation failures never prevent Codex from starting.
 
+When an update adds optional tools, Scriptorium reports their names. If optional tools are
+enabled, the next interactive `scodex` launch reopens the complete selector with existing choices
+preselected; non-interactive launches keep the selection pending and show the command to run.
+
 ## Optional tools
 
 <!-- BEGIN GENERATED OPTIONAL TOOLS -->
@@ -111,6 +115,7 @@ Git, or installation failures never prevent Codex from starting.
 | jq | Query and transform JSON | Yes |
 | yq | Query and transform YAML | Yes |
 | ShellCheck | Find problems in shell scripts | Yes |
+| ast-grep | Search and rewrite code with syntax-aware patterns | Yes |
 | GitHub CLI | Work with GitHub repositories and pull requests | No |
 | SOPS | Encrypt configuration files and secrets | No |
 | hyperfine | Benchmark commands | No |

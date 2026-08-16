@@ -110,16 +110,26 @@ if ! git -C "$repo_dir" merge-base --is-ancestor "$current_commit" "$remote_comm
 fi
 
 install_update() {
+    local catalog_before catalog_after new_tools pending_file pending_tmp
     if [[ -n $(git -C "$repo_dir" status --porcelain 2>>"$log_file") ]]; then
         log "working tree has local changes"
         printf 'scodex: repository has local changes; update skipped\n'
         return 0
     fi
+    catalog_before=$(mktemp "$state_dir/.tools-catalog-before.XXXXXX")
+    catalog_after=$(mktemp "$state_dir/.tools-catalog-after.XXXXXX")
+    awk -F '\t' '!/^#/ && NF >= 7 {print $1}' "$repo_dir/tools/catalog.tsv" 2>/dev/null \
+        | sort -u >"$catalog_before"
     if ! timeout 10s git -C "$repo_dir" pull --ff-only --quiet >>"$log_file" 2>&1; then
+        rm -f -- "$catalog_before" "$catalog_after"
         log "pull failed"
         printf 'scodex: update failed, continuing codex\n'
         return 0
     fi
+    awk -F '\t' '!/^#/ && NF >= 7 {print $1}' "$repo_dir/tools/catalog.tsv" 2>/dev/null \
+        | sort -u >"$catalog_after"
+    new_tools=$(comm -13 "$catalog_before" "$catalog_after" || true)
+    rm -f -- "$catalog_before" "$catalog_after"
     if ! "$repo_dir/install.sh" --apply-saved --no-package-install >>"$log_file" 2>&1; then
         log "install failed"
         printf 'scodex: install failed, continuing codex\n'
@@ -128,6 +138,22 @@ install_update() {
     current_commit=$(git -C "$repo_dir" rev-parse HEAD 2>>"$log_file")
     printf '%s\n' "$current_commit" >"$deployed_file"
     printf 'scodex: update installed %s\n' "${current_commit:0:8}"
+    if [[ -n $new_tools ]]; then
+        printf 'scodex: new optional tools are available: %s\n' \
+            "$(printf '%s\n' "$new_tools" | paste -sd, -)"
+        if [[ $(read_pref tools 0) == 1 ]]; then
+            pending_file=$state_dir/tools-reconfigure-required
+            pending_tmp=$(mktemp "$state_dir/.tools-reconfigure.XXXXXX")
+            {
+                cat -- "$pending_file" 2>/dev/null || true
+                printf '%s\n' "$new_tools"
+            } | sed '/^$/d' | sort -u >"$pending_tmp"
+            mv -- "$pending_tmp" "$pending_file"
+            printf 'scodex: review your tool selection before continuing\n'
+        else
+            printf 'scodex: optional tools are disabled; run `scodex tools configure` to enable them\n'
+        fi
+    fi
     return 0
 }
 

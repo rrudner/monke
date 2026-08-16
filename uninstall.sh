@@ -143,12 +143,16 @@ for target in \
     "$config_dir/tools.state" "$config_dir/mise.toml" "$config_dir/tools-env.sh" \
     "$config_dir/capabilities.md" "$state_dir/deployed-commit" "$state_dir/update.state" \
     "$state_dir/last-update.log" "$state_dir/update.lock" "$state_dir/tools-update-check" \
+    "$state_dir/tools-reconfigure-required" \
     "$data_dir/repo" "$data_dir/runtime" "$data_dir/mise" "$cache_dir/mise" "$state_dir/mise" \
     "$bin_dir/scodex" "$codex_home/scriptorium-cheap.config.toml" \
     "$codex_home/scriptorium-normal.config.toml" "$codex_home/scriptorium-hard.config.toml" \
     "$codex_home/agents/scriptorium-worker.toml" \
     "$codex_home/skills/scriptorium-delegate/SKILL.md" \
-    "$codex_home/skills/scriptorium-delegate/agents/openai.yaml"; do
+    "$codex_home/skills/scriptorium-delegate/agents/openai.yaml" \
+    "$codex_home/skills/reuse-first/SKILL.md" \
+    "$codex_home/skills/reuse-first/agents/openai.yaml" \
+    "$codex_home/skills/reuse-first/references/tooling.md"; do
     assert_safe_path "$target"
 done
 preflight_block "$codex_home/AGENTS.md" '<!-- >>> scriptorium >>> -->' '<!-- <<< scriptorium <<< -->'
@@ -195,6 +199,12 @@ remove_if_identical "$codex_home/skills/scriptorium-delegate/SKILL.md" \
     "$repo_dir/codex/skills/scriptorium-delegate/SKILL.md" 'Codex skill'
 remove_if_identical "$codex_home/skills/scriptorium-delegate/agents/openai.yaml" \
     "$repo_dir/codex/skills/scriptorium-delegate/agents/openai.yaml" 'Codex skill metadata'
+remove_if_identical "$codex_home/skills/reuse-first/SKILL.md" \
+    "$repo_dir/codex/skills/reuse-first/SKILL.md" 'Codex skill'
+remove_if_identical "$codex_home/skills/reuse-first/agents/openai.yaml" \
+    "$repo_dir/codex/skills/reuse-first/agents/openai.yaml" 'Codex skill metadata'
+remove_if_identical "$codex_home/skills/reuse-first/references/tooling.md" \
+    "$repo_dir/codex/skills/reuse-first/references/tooling.md" 'Codex skill reference'
 remove_if_identical "$config_dir/tmux.conf" "$repo_dir/tmux/tmux.conf" 'tmux fragment'
 remove_if_identical "$bin_dir/scodex" "$repo_dir/bin/scodex" 'launcher'
 
@@ -212,7 +222,8 @@ for target in \
     "$preferences_file" "$config_dir/tools.selected" "$config_dir/tools.state" \
     "$config_dir/mise.toml" "$config_dir/tools-env.sh" "$config_dir/capabilities.md" \
     "$state_dir/deployed-commit" "$state_dir/update.state" "$state_dir/last-update.log" \
-    "$state_dir/update.lock" "$state_dir/tools-update-check"; do
+    "$state_dir/update.lock" "$state_dir/tools-update-check" \
+    "$state_dir/tools-reconfigure-required"; do
     remove_owned_file "$target" 'Scriptorium state'
 done
 
@@ -226,6 +237,9 @@ done
 
 remove_empty_dir "$codex_home/skills/scriptorium-delegate/agents"
 remove_empty_dir "$codex_home/skills/scriptorium-delegate"
+remove_empty_dir "$codex_home/skills/reuse-first/agents"
+remove_empty_dir "$codex_home/skills/reuse-first/references"
+remove_empty_dir "$codex_home/skills/reuse-first"
 remove_empty_dir "$codex_home/skills"
 remove_empty_dir "$codex_home/agents"
 remove_empty_dir "$config_dir"

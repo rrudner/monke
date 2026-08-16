@@ -4,6 +4,7 @@ fd	fd	fd	1	core	fd	Fast and convenient file search
 jq	jq	jq	1	core	jq	Query and transform JSON
 yq	yq	yq	1	core	yq	Query and transform YAML
 shellcheck	shellcheck	shellcheck	1	core	ShellCheck	Find problems in shell scripts
+ast-grep	ast-grep	ast-grep	1	core	ast-grep	Search and rewrite code with syntax-aware patterns
 gh	gh	gh	0	advanced	GitHub CLI	Work with GitHub repositories and pull requests
 sops	sops	sops	0	advanced	SOPS	Encrypt configuration files and secrets
 hyperfine	hyperfine	hyperfine	0	advanced	hyperfine	Benchmark commands

@@ -63,6 +63,8 @@ Optimize for correct results with minimal context and tool output. Follow more s
 ## Execution and verification
 
 - Use a short plan only for complex or ambiguous changes.
+- Invoke `$reuse-first` before implementation or refactoring that could overlap existing behavior,
+  ownership, components, helpers, services, or error handling.
 - Make the smallest coherent change and run the narrowest relevant test first.
 - Do not rerun an unchanged failing command without new evidence or a code change.
 - Separate pre-existing failures from failures caused by the work.
@@ -80,8 +82,9 @@ Optimize for correct results with minimal context and tool output. Follow more s
   returned synthesis would consume more primary-model context than direct execution. Do not keep
   an otherwise suitable task local merely because it is small. Prefer one delegate at a time.
 - Prefer Spark for narrow coding because it has a separate usage limit. Never infer Spark access
-  from the subscription plan, account label, startup state, or a cached assumption. On the first
-  suitable delegation in a session, request Spark directly. If spawning succeeds, treat it as
+  from the subscription plan, account label, startup state, tool metadata, suggested model lists,
+  or a cached assumption. Do not report Spark as unavailable before a direct spawn fails. On the
+  first suitable delegation in a session, request Spark directly. If spawning succeeds, treat it as
   available for the rest of that session. On a transient timeout, overload, rate-limit, or
   temporary-availability error, use Luna for the current task and retry Spark on the first
   suitable delegation after the service-provided retry delay, or after 10 minutes when no delay

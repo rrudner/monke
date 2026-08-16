@@ -92,6 +92,12 @@ install_owned "$package_dir/skills/scriptorium-delegate/SKILL.md" \
     "$codex_home/skills/scriptorium-delegate/SKILL.md"
 install_owned "$package_dir/skills/scriptorium-delegate/agents/openai.yaml" \
     "$codex_home/skills/scriptorium-delegate/agents/openai.yaml"
+install_owned "$package_dir/skills/reuse-first/SKILL.md" \
+    "$codex_home/skills/reuse-first/SKILL.md"
+install_owned "$package_dir/skills/reuse-first/agents/openai.yaml" \
+    "$codex_home/skills/reuse-first/agents/openai.yaml"
+install_owned "$package_dir/skills/reuse-first/references/tooling.md" \
+    "$codex_home/skills/reuse-first/references/tooling.md"
 
 legacy_profile=$(mktemp "$codex_home/.legacy-profile.XXXXXX")
 for profile in cheap normal hard; do

@@ -30,8 +30,9 @@ Honor an explicit model choice. Otherwise choose the first model likely to finis
 
 - `gpt-5.3-codex-spark`: prefer for narrow coding, targeted exploration, focused fixes, and test
   triage. Do not inspect or infer the user's subscription plan, account tier, startup state, or
-  cached account metadata to decide availability. On the first suitable delegation in a session,
-  request Spark directly. A successful spawn proves availability for that session. Only an
+  cached account metadata, tool metadata, or suggested model list to decide availability. Do not
+  report Spark as unavailable before a direct spawn fails. On the first suitable delegation in a
+  session, request Spark directly. A successful spawn proves availability for that session. Only an
   explicit permanent authorization, unsupported-model, or account-access error marks Spark
   unavailable for the rest of that session. Treat timeouts, overload, rate limits, and temporary
   availability failures as transient: use Luna for the current task, record the service-provided

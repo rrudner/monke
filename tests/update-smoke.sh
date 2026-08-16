@@ -42,7 +42,10 @@ git clone "$work_base/origin.git" "$work_base/upstream" > /dev/null
 git -C "$work_base/upstream" config user.email test@example.invalid
 git -C "$work_base/upstream" config user.name Test
 printf 'future\n' >>"$work_base/upstream/file.txt"
+printf 'future-tool\tfuture-tool\t-\t0\tadvanced\tFuture tool\tUpdate migration test\n' \
+    >>"$work_base/upstream/tools/catalog.tsv"
 git -C "$work_base/upstream" add file.txt
+git -C "$work_base/upstream" add tools/catalog.tsv
 git -C "$work_base/upstream" commit -qm future
 git -C "$work_base/upstream" push > /dev/null
 
@@ -53,10 +56,11 @@ cat >"$HOME/.config/scriptorium/preferences" <<EOF
 repo_dir=$work_base/local
 tmux=0
 update_check=1
-tools=0
+tools=1
 shell=bash
 shell_rc=
 EOF
+printf 'ripgrep\n' >"$HOME/.config/scriptorium/tools.selected"
 
 export CODEX_TEST_LOG=$codex_log
 
@@ -71,12 +75,25 @@ before=$(git -C "$work_base/local" rev-parse HEAD)
 grep -q '^args:--profile scriptorium-normal$' "$codex_log"
 
 # explicit update should apply remote changes and continue to updated state
-CODEX_TEST_LOG=$test_root/update-call.log "$repo_dir/bin/scodex" update >/dev/null
+CODEX_TEST_LOG=$test_root/update-call.log "$repo_dir/bin/scodex" update \
+    >"$test_root/update-output.log"
 after=$(git -C "$work_base/local" rev-parse HEAD)
 if [[ "$before" == "$after" ]]; then
     printf 'update did not apply\n' >&2
     exit 1
 fi
+if ! grep -q 'new optional tools are available: future-tool' "$test_root/update-output.log"; then
+    printf 'update did not report the new tool:\n' >&2
+    head -20 "$test_root/update-output.log" >&2
+    exit 1
+fi
+grep -qx 'future-tool' \
+    "$HOME/.local/state/scriptorium/tools-reconfigure-required"
+
+# an explicit selection clears the pending catalog migration
+CODEX_TEST_LOG=$test_root/reselect.log "$repo_dir/bin/scodex" tools configure \
+    --select ripgrep >/dev/null
+[[ ! -e $HOME/.local/state/scriptorium/tools-reconfigure-required ]]
 
 # tools delegation when tools manager is present
 cat > "$work_base/local/scripts/tools-manager.sh" <<'EOF'

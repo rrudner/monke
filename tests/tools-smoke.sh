@@ -6,7 +6,7 @@ test_root=$(mktemp -d /tmp/scriptorium-tools.XXXXXX)
 trap 'rm -rf -- "$test_root"' EXIT
 mkdir -p -- "$test_root/bin"
 
-for command_name in rg fd jq yq shellcheck gh; do
+for command_name in rg fd jq yq shellcheck ast-grep gh; do
     cat >"$test_root/bin/$command_name" <<EOF
 #!/usr/bin/env bash
 printf '%s test-version\n' '$command_name'
@@ -16,14 +16,16 @@ done
 
 PATH="$test_root/bin:$PATH" HOME="$test_root/home" \
     "$repo_dir/scripts/tools-manager.sh" configure \
-    --select ripgrep,fd,jq,yq,shellcheck,gh >"$test_root/configure.log"
+    --select ripgrep,fd,jq,yq,shellcheck,ast-grep,gh >"$test_root/configure.log"
 
 state=$test_root/home/.config/scriptorium/tools.state
-[[ $(wc -l <"$state") -eq 6 ]]
+[[ $(wc -l <"$state") -eq 7 ]]
 awk -F '\t' '$2 != "system" {exit 1}' "$state"
 grep -q '`ripgrep` (`rg`): system' \
     "$test_root/home/.config/scriptorium/capabilities.md"
 grep -q 'Fast recursive text search' "$test_root/home/.config/scriptorium/capabilities.md"
+grep -q '`ast-grep` (`ast-grep`): system' \
+    "$test_root/home/.config/scriptorium/capabilities.md"
 [[ ! -e $test_root/home/.local/share/scriptorium/runtime/mise ]]
 
 PATH="$test_root/bin:$PATH" HOME="$test_root/home" \

@@ -29,6 +29,11 @@ CODEX_HOME="$test_root/home/.codex" \
 cmp -s "$test_root/original-config.toml" "$test_root/home/.codex/config.toml"
 grep -q '^model = "gpt-5.6-sol"$' \
     "$test_root/home/.codex/scriptorium-hard.config.toml"
+grep -q '^default_subagent_model = "gpt-5.3-codex-spark"$' \
+    "$test_root/home/.codex/scriptorium-hard.config.toml"
+[[ -f "$test_root/home/.codex/skills/reuse-first/SKILL.md" ]]
+[[ -f "$test_root/home/.codex/skills/reuse-first/agents/openai.yaml" ]]
+[[ -f "$test_root/home/.codex/skills/reuse-first/references/tooling.md" ]]
 grep -q '^<!-- >>> scriptorium >>> -->$' "$test_root/home/.codex/AGENTS.md"
 grep -q '^Keep this content\.$' "$test_root/home/.codex/AGENTS.md"
 grep -q '^# >>> scriptorium >>>$' "$test_root/home/.tmux.conf"
@@ -164,6 +169,7 @@ CODEX_HOME="$uninstall_home/.codex" \
 ! grep -q '^# >>> scriptorium >>>$' "$uninstall_home/.customrc"
 ! grep -q '^# >>> scriptorium >>>$' "$uninstall_home/.tmux.conf"
 [[ ! -e $uninstall_home/.codex/scriptorium-hard.config.toml ]]
+[[ ! -e $uninstall_home/.codex/skills/reuse-first ]]
 [[ ! -e $uninstall_home/.local/bin/scodex ]]
 [[ ! -e $uninstall_home/.config/scriptorium/preferences ]]
 [[ ! -e $uninstall_home/.config/fish/conf.d/scriptorium.fish ]]

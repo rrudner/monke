@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}/scriptorium
+state_dir=${XDG_STATE_HOME:-"$HOME/.local/state"}/scriptorium
 preferences_file=$config_dir/preferences
 
 read_pref() {
@@ -12,6 +13,27 @@ read_pref() {
         printf '%s\n' "$value"
     else
         printf '%s\n' "$default"
+    fi
+}
+
+review_pending_tools() {
+    local pending_tools=$state_dir/tools-reconfigure-required
+    local tools_manager=$repo_dir/scripts/tools-manager.sh
+    local tools_env=$config_dir/tools-env.sh pending_names
+    [[ -s $pending_tools && $(read_pref tools 0) == 1 ]] || return 0
+    pending_names=$(paste -sd, "$pending_tools")
+    printf 'scodex: new optional tools require your selection: %s\n' "$pending_names"
+    if [[ -t 0 && -t 1 && -x $tools_manager ]]; then
+        printf 'Review the complete tool list; existing choices are preselected.\n'
+        if "$tools_manager" configure; then
+            "$repo_dir/codex/scripts/render-agents.sh"
+            rm -f -- "$pending_tools"
+            source "$tools_env"
+        else
+            printf 'scodex: tool selection remains pending; Codex will continue\n' >&2
+        fi
+    else
+        printf 'scodex: run `scodex tools configure` in a terminal to review the tool list\n'
     fi
 }
 
@@ -25,6 +47,7 @@ case ${1:-} in
         SCRIPTORIUM_MANUAL_UPDATE=1 \
             SCRIPTORIUM_SKIP_SNOOZE_CHECK=1 \
             "$repo_dir/scripts/update-repository.sh" apply || true
+        review_pending_tools
         exit 0
         ;;
     configure)
@@ -47,6 +70,9 @@ case ${1:-} in
                     "$repo_dir/codex/scripts/render-agents.sh"
                     ;;
             esac
+            if [[ $tools_action == configure ]]; then
+                rm -f -- "$state_dir/tools-reconfigure-required"
+            fi
             exit 0
         fi
         printf 'scodex: tools manager is not available.\n'
@@ -79,6 +105,8 @@ if (( ! skip_update )) && [[ $(read_pref update_check "$(read_pref auto_update 1
 fi
 
 tools_manager=$repo_dir/scripts/tools-manager.sh
+review_pending_tools
+
 if [[ -x $tools_manager ]]; then
     "$tools_manager" check || true
 fi
