@@ -14,27 +14,21 @@ legacy_backup=
 source "$repo_dir/scripts/managed-block.sh"
 
 remove_legacy_tmux_block() {
-    local target=$1 cleaned
+    local target=$1
+    local tmux_start='# >>> tmux-init auto-tmux >>>'
+    local tmux_end='# <<< tmux-init auto-tmux <<<'
     if [[ -L $target ]]; then
         printf 'Refusing to edit %s: managed files cannot be symbolic links.\n' "$target" >&2
         return 1
     fi
     [[ -f $target ]] || return 0
-    grep -Fqx '# >>> tmux-init auto-tmux >>>' "$target" || return 0
-    if ! validate_managed_markers "$target" '# >>> tmux-init auto-tmux >>>' \
-        '# <<< tmux-init auto-tmux <<<'; then
-        printf 'Refusing to migrate %s: invalid legacy markers.\n' "$target" >&2
+    grep -Fqx "$tmux_start" "$target" || return 0
+    if ! remove_managed_block "$target" "$tmux_start" "$tmux_end" legacy_backup; then
+        if grep -Fqx "$tmux_start" "$target"; then
+            printf 'Refusing to migrate %s: invalid legacy markers.\n' "$target" >&2
+        fi
         return 1
     fi
-    cleaned=$(mktemp "$(dirname -- "$target")/.legacy-shell.XXXXXX")
-    awk '
-        $0 == "# >>> tmux-init auto-tmux >>>" { skip = 1; next }
-        $0 == "# <<< tmux-init auto-tmux <<<" { skip = 0; next }
-        !skip { print }
-    ' "$target" >"$cleaned"
-    cp -a -- "$target" "$target.backup-$backup_stamp"
-    legacy_backup=$target.backup-$backup_stamp
-    mv -- "$cleaned" "$target"
     printf 'Removed legacy tmux shell block: %s\n' "$target"
 }
 

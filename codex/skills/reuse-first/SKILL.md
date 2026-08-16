@@ -1,11 +1,12 @@
 ---
 name: reuse-first
-description: Prevent duplicate or parallel implementations by discovering semantic analogs and choosing reuse, extension, or justified creation before editing. Use for implementation, refactoring, architecture changes, shared behavior, components, services, helpers, error handling, and cleanup of existing duplication.
+description: Prevent duplicate or parallel implementations by discovering semantic analogs and choosing reuse, extension, or justified creation before editing. Use proactively for implementation, refactoring, architecture changes, new components, shared behavior, helpers, services, error handling, cleanup of duplication, or whenever requested work may overlap existing responsibility.
 ---
 
 # Reuse First
 
-Use this skill whenever requested work could overlap existing behavior or ownership. Avoid parallel implementations and make reuse or extension the default before writing new code.
+Use this skill whenever requested work overlaps existing behavior, ownership, components, helpers,
+services, or error handling. Default to reuse or extend, then proceed only with the chosen path.
 
 ## Workflow
 
@@ -46,7 +47,12 @@ Apply this hard gate first:
    - Add explicit migration rationale and deprecation plan for overlapping pieces.
 
 Decision must include one selected mode, why it is safe, the authoritative implementation after
-the change, and one fallback option rejected.
+the change, and one rejected fallback option.
+
+When overlap exists, proactively propose `$reuse-first` consolidation in the current change and block any duplicate by:
+
+- migrating one owner to the shared implementation when feasible,
+- or documenting a follow-up deprecation/migration plan when immediate consolidation is out of scope.
 
 ### 3) Post-change audit
 

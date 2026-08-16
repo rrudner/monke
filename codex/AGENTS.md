@@ -64,7 +64,9 @@ Optimize for correct results with minimal context and tool output. Follow more s
 
 - Use a short plan only for complex or ambiguous changes.
 - Invoke `$reuse-first` before implementation or refactoring that could overlap existing behavior,
-  ownership, components, helpers, services, or error handling.
+  ownership, components, helpers, services, or error handling. If overlap exists, require
+  reuse/extend/new with one explicit decision and a migration or follow-up plan for any remaining
+  duplication.
 - Make the smallest coherent change and run the narrowest relevant test first.
 - Do not rerun an unchanged failing command without new evidence or a code change.
 - Separate pre-existing failures from failures caused by the work.

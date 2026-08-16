@@ -1,3 +1,6 @@
 interface:
   display_name: "Reuse First"
-  short_description: "Enforce reuse/extend/new decisions and staged remediation before implementation"
+  short_description: "Prefer reuse before creating duplicate logic"
+  default_prompt: "Use $reuse-first to find overlap and choose reuse, extend, or justified creation."
+policy:
+  allow_implicit_invocation: true

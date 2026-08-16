@@ -1,26 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+launcher_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+repo_dir=$(cd -- "$launcher_dir/.." && pwd)
 config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}/scriptorium
 state_dir=${XDG_STATE_HOME:-"$HOME/.local/state"}/scriptorium
 preferences_file=$config_dir/preferences
-
-read_pref() {
-    local key=$1 default=$2 value
-    value=$(sed -n "s/^${key}=//p" "$preferences_file" 2>/dev/null | tail -n 1)
-    if [[ -n $value ]]; then
-        printf '%s\n' "$value"
-    else
-        printf '%s\n' "$default"
-    fi
-}
+if [[ -f $launcher_dir/scriptorium-preferences.sh ]]; then
+    source "$launcher_dir/scriptorium-preferences.sh"
+elif [[ -f $repo_dir/scripts/preferences.sh ]]; then
+    source "$repo_dir/scripts/preferences.sh"
+else
+    printf 'scodex: managed preference parser is unavailable.\n' >&2
+    exit 1
+fi
 
 review_pending_tools() {
     local pending_tools=$state_dir/tools-reconfigure-required
     local tools_manager=$repo_dir/scripts/tools-manager.sh
     local tools_env=$config_dir/tools-env.sh pending_names
-    [[ -s $pending_tools && $(read_pref tools 0) == 1 ]] || return 0
+    [[ -s $pending_tools && $(read_pref "$preferences_file" tools 0) == 1 ]] || return 0
     pending_names=$(paste -sd, "$pending_tools")
     printf 'scodex: new optional tools require your selection: %s\n' "$pending_names"
     if [[ -t 0 && -t 1 && -x $tools_manager ]]; then
@@ -38,14 +37,18 @@ review_pending_tools() {
 
 reconcile_tool_catalog() {
     local tools_manager=$repo_dir/scripts/tools-manager.sh
-    if [[ -x $tools_manager && $(read_pref tools 0) == 1 ]]; then
+    if [[ -x $tools_manager && $(read_pref "$preferences_file" tools 0) == 1 ]]; then
         "$tools_manager" reconcile || true
     fi
 }
 
-configured_repo=$(read_pref repo_dir "")
-if [[ -n $configured_repo && -d $configured_repo/.git ]]; then
+configured_repo=$(read_pref "$preferences_file" repo_dir "")
+if [[ -n $configured_repo ]]; then
     repo_dir=$configured_repo
+    if [[ ! -d $repo_dir/.git ]]; then
+        printf 'scodex: configured repository is invalid: %s\n' "$repo_dir" >&2
+        exit 1
+    fi
 fi
 
 case ${1:-} in
@@ -104,7 +107,7 @@ else
     export SCRIPTORIUM_ACTIVE=1 SCRIPTORIUM_TOOLS=
 fi
 
-if (( ! skip_update )) && [[ $(read_pref update_check "$(read_pref auto_update 1)") != 0 ]]; then
+if (( ! skip_update )) && [[ $(read_pref "$preferences_file" update_check "$(read_pref "$preferences_file" auto_update 1)") != 0 ]]; then
     SCRIPTORIUM_MANUAL_UPDATE=1 "$repo_dir/scripts/update-repository.sh" check || true
 fi
 

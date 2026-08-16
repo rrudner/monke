@@ -74,7 +74,7 @@ update_managed_block() {
 }
 
 remove_managed_block() {
-    local target=$1 start_marker=$2 end_marker=$3 cleaned backup_stamp
+    local target=$1 start_marker=$2 end_marker=$3 cleaned backup_stamp backup_path backup_output=${4-}
     [[ -L $target ]] && {
         printf 'Refusing to edit %s: managed files cannot be symbolic links.\n' "$target" >&2
         return 1
@@ -92,7 +92,12 @@ remove_managed_block() {
         !skip { print }
     ' "$target" >"$cleaned"
     backup_stamp=$(date -u +%Y%m%dT%H%M%SZ)
-    cp -a -- "$target" "$target.backup-$backup_stamp"
+    backup_path=$target.backup-$backup_stamp
+    cp -a -- "$target" "$backup_path"
+    printf 'Backup: %s\n' "$backup_path"
     mv -- "$cleaned" "$target"
+    if [[ -n $backup_output ]]; then
+        printf -v "$backup_output" '%s' "$backup_path"
+    fi
     printf 'Removed managed block: %s\n' "$target"
 }

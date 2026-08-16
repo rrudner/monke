@@ -10,6 +10,9 @@
 
 ## Implementation rules
 
+- Invoke `$reuse-first` before implementation or refactoring that could overlap existing behavior,
+  ownership, helpers, services, or error handling. If overlap exists, select one reuse/extend/new
+  path and propose consolidation or a scoped migration follow-up.
 - Use portable Bash and keep external dependencies limited to commands documented in `README.md`.
 - Keep all user-facing script output, prompts, comments, and documentation in English.
 - Preserve existing installer flags and saved preference keys unless a migration is included.

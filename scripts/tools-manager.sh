@@ -23,6 +23,7 @@ mkdir -p -- "$config_root" "$data_root/runtime" "$cache_root" "$state_root"
 
 catalog_rows() { awk -F '\t' '!/^#/ && NF >= 7' "$catalog"; }
 catalog_names() { catalog_rows | cut -f1 | sort -u; }
+catalog_names_from() { awk -F '\t' '!/^#/ && NF >= 7 {print $1}' "$1" | sort -u; }
 selected() { grep -Fqx -- "$1" "$selected_file" 2>/dev/null; }
 
 record_catalog_review() {
@@ -57,6 +58,27 @@ reconcile_catalog() {
         mv -- "$pending_tmp" "$pending_catalog_file"
     fi
     rm -f -- "$new_tmp"
+}
+
+catalog_diff() {
+    local before=$1 after=$2 update_pending=${3:-0}
+    local before_tmp after_tmp diff_tmp pending_tmp
+    before_tmp=$(mktemp "$config_root/.tools-catalog-before.XXXXXX")
+    after_tmp=$(mktemp "$config_root/.tools-catalog-after.XXXXXX")
+    diff_tmp=$(mktemp "$config_root/.tools-catalog-diff.XXXXXX")
+    catalog_names_from "$before" >"$before_tmp"
+    catalog_names_from "$after" >"$after_tmp"
+    comm -13 "$before_tmp" "$after_tmp" >"$diff_tmp"
+    if [[ -s $diff_tmp ]] && (( update_pending == 1 )); then
+        pending_tmp=$(mktemp "$state_root/.tools-reconfigure.XXXXXX")
+        {
+            cat -- "$pending_catalog_file" 2>/dev/null || true
+            cat -- "$diff_tmp"
+        } | sed '/^$/d' | sort -u >"$pending_tmp"
+        mv -- "$pending_tmp" "$pending_catalog_file"
+    fi
+    cat "$diff_tmp"
+    rm -f -- "$before_tmp" "$after_tmp" "$diff_tmp"
 }
 
 bootstrap_mise() {
@@ -321,6 +343,10 @@ case $action in
         record_catalog_review
         ;;
     reconcile) reconcile_catalog ;;
+    catalog-diff)
+        [[ $# -ge 2 ]] || { printf 'Usage: scodex tools catalog-diff BEFORE_CATALOG AFTER_CATALOG [UPDATE_PENDING]\n' >&2; exit 2; }
+        catalog_diff "$1" "$2" "${3:-0}"
+        ;;
     apply) write_runtime_files ;;
     status) status_tools ;;
     check) check_updates ;;

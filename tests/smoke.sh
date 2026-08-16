@@ -11,6 +11,8 @@ bash -n "$repo_dir/install.sh" "$repo_dir/uninstall.sh" "$repo_dir/update.sh" "$
     "$repo_dir"/scripts/*.sh "$repo_dir"/codex/scripts/*.sh \
     "$repo_dir"/tmux/scripts/*.sh "$repo_dir"/tests/*.sh
 
+bash "$repo_dir/tests/managed-block-smoke.sh"
+
 cat >"$test_root/home/.codex/config.toml" <<'EOF'
 model = "user-model"
 
@@ -34,6 +36,9 @@ grep -q '^default_subagent_model = "gpt-5.3-codex-spark"$' \
 [[ -f "$test_root/home/.codex/skills/reuse-first/SKILL.md" ]]
 [[ -f "$test_root/home/.codex/skills/reuse-first/agents/openai.yaml" ]]
 [[ -f "$test_root/home/.codex/skills/reuse-first/references/tooling.md" ]]
+grep -q '$reuse-first' "$test_root/home/.codex/skills/reuse-first/SKILL.md"
+grep -q 'default_prompt' "$test_root/home/.codex/skills/reuse-first/agents/openai.yaml"
+grep -q 'overlap exists' "$test_root/home/.codex/skills/reuse-first/SKILL.md"
 grep -q '^<!-- >>> scriptorium >>> -->$' "$test_root/home/.codex/AGENTS.md"
 grep -q '^Keep this content\.$' "$test_root/home/.codex/AGENTS.md"
 grep -q '^# >>> scriptorium >>>$' "$test_root/home/.tmux.conf"
@@ -41,6 +46,22 @@ grep -q '^set -g status off$' "$test_root/home/.tmux.conf"
 grep -q '^alias user_command=true$' "$test_root/home/.bashrc"
 grep -q 'tmux new-session -A -s main' "$test_root/home/.bashrc"
 grep -qx 'tmux=1' "$test_root/home/.config/scriptorium/preferences"
+repo_pref_test=$test_root/home/.config/scriptorium/preferences-preferences-reader
+cat >"$repo_pref_test" <<'EOF'
+tools=0
+tools=1
+EOF
+source "$repo_dir/scripts/preferences.sh"
+reader_value=$(read_pref "$repo_pref_test" tools 0)
+if [[ $reader_value != 1 ]]; then
+    printf 'Expected last preference value to win\n' >&2
+    exit 1
+fi
+reader_default=$(read_pref "$repo_pref_test" absent default)
+if [[ $reader_default != default ]]; then
+    printf 'Expected default preference value when missing\n' >&2
+    exit 1
+fi
 grep -qx 'update_check=1' "$test_root/home/.config/scriptorium/preferences"
 grep -qx 'tools=0' "$test_root/home/.config/scriptorium/preferences"
 [[ -f "$test_root/home/.config/scriptorium/tools.catalog-reviewed" ]]

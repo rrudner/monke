@@ -69,6 +69,7 @@ scodex tools remove NAME       # Remove a tool from the selection
 |---|---|---|
 | Repository | `~/.local/share/scriptorium/repo` | Git-managed |
 | Preferences | `~/.config/scriptorium/preferences` | Scriptorium-managed |
+| Launcher helper | `~/.local/bin/scriptorium-preferences.sh` | Scriptorium-managed |
 | Codex profiles | `~/.codex/scriptorium-*.config.toml` | Scriptorium-managed |
 | Codex instructions | `~/.codex/AGENTS.md` | Marker-managed block |
 | Tmux settings | `~/.config/scriptorium/tmux.conf` | Scriptorium-managed |
@@ -140,3 +141,19 @@ upgrade tools; `scodex` checks for local tool updates at most weekly and only di
 
 These suites cover safe installation and migration, tool isolation, update behavior, and failure
 rollback without modifying the real home directory.
+
+## Overlap policy
+
+Scriptorium installs the `reuse-first` skill and an AGENTS rule that makes Codex invoke it
+automatically before work that may duplicate existing behavior, ownership, helpers, services, or
+error handling. Codex then:
+
+- searches for semantic analogs,
+- selects and reports one decision: `Reuse`, `Extend`, or `Create new`,
+- proposes consolidation when overlap exists and performs it when it is within the requested scope,
+- blocks a parallel implementation and proposes a migration follow-up when consolidation is out of
+  scope.
+
+Invoke it explicitly with `$reuse-first` when you want an audit or want to force this check before
+a task. Re-run `./install.sh --apply-saved` after updating Scriptorium to deploy the latest skill
+and AGENTS block.

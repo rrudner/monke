@@ -146,7 +146,7 @@ for target in \
     "$state_dir/last-update.log" "$state_dir/update.lock" "$state_dir/tools-update-check" \
     "$state_dir/tools-reconfigure-required" \
     "$data_dir/repo" "$data_dir/runtime" "$data_dir/mise" "$cache_dir/mise" "$state_dir/mise" \
-    "$bin_dir/scodex" "$codex_home/scriptorium-cheap.config.toml" \
+    "$bin_dir/scodex" "$bin_dir/scriptorium-preferences.sh" "$codex_home/scriptorium-cheap.config.toml" \
     "$codex_home/scriptorium-normal.config.toml" "$codex_home/scriptorium-hard.config.toml" \
     "$codex_home/agents/scriptorium-worker.toml" \
     "$codex_home/skills/scriptorium-delegate/SKILL.md" \
@@ -208,6 +208,7 @@ remove_if_identical "$codex_home/skills/reuse-first/references/tooling.md" \
     "$repo_dir/codex/skills/reuse-first/references/tooling.md" 'Codex skill reference'
 remove_if_identical "$config_dir/tmux.conf" "$repo_dir/tmux/tmux.conf" 'tmux fragment'
 remove_if_identical "$bin_dir/scodex" "$repo_dir/bin/scodex" 'launcher'
+remove_if_identical "$bin_dir/scriptorium-preferences.sh" "$repo_dir/scripts/preferences.sh" 'launcher helper'
 
 if [[ -e $fish_target ]]; then
     if cmp -s -- "$fish_target" "$fish_expected_plain" \

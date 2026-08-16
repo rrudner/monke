@@ -7,6 +7,7 @@ data_dir=${XDG_DATA_HOME:-"$HOME/.local/share"}/scriptorium
 state_dir=${XDG_STATE_HOME:-"$HOME/.local/state"}/scriptorium
 bin_dir=${XDG_BIN_HOME:-"$HOME/.local/bin"}
 preferences_file=$config_dir/preferences
+source "$repo_dir/scripts/preferences.sh"
 mode=interactive
 tmux_choice=
 update_choice=
@@ -30,12 +31,6 @@ Usage: ./install.sh [options]
   --no-package-install                         Accepted legacy no-op
   -h, --help
 EOF
-}
-
-read_pref() {
-    local key=$1 default=$2 value
-    value=$(sed -n "s/^${key}=//p" "$preferences_file" 2>/dev/null | tail -n 1)
-    printf '%s\n' "${value:-$default}"
 }
 
 prompt_boolean() {
@@ -80,12 +75,12 @@ while (($#)); do
     shift
 done
 
-saved_tmux=$(read_pref tmux 1)
-saved_update=$(read_pref update_check "$(read_pref auto_update 1)")
-saved_tools=$(read_pref tools 0)
+saved_tmux=$(read_pref "$preferences_file" tmux 1)
+saved_update=$(read_pref "$preferences_file" update_check "$(read_pref "$preferences_file" auto_update 1)")
+saved_tools=$(read_pref "$preferences_file" tools 0)
 login_shell=${SHELL:-bash}
-saved_shell=$(read_pref shell "${login_shell##*/}")
-saved_rc=$(read_pref shell_rc '')
+saved_shell=$(read_pref "$preferences_file" shell "${login_shell##*/}")
+saved_rc=$(read_pref "$preferences_file" shell_rc '')
 shell_choice=${shell_choice:-$saved_shell}
 shell_rc=${shell_rc:-$saved_rc}
 
@@ -179,6 +174,8 @@ SCRIPTORIUM_TMUX=$tmux_choice SCRIPTORIUM_SHELL=$shell_choice \
     "$repo_dir/scripts/install-shell-hook.sh" "$shell_rc"
 
 wrapper_target=$bin_dir/scodex
+helper_source=$repo_dir/scripts/preferences.sh
+helper_target=$bin_dir/scriptorium-preferences.sh
 if [[ ! -f $wrapper_target ]] || ! cmp -s -- "$repo_dir/bin/scodex" "$wrapper_target"; then
     wrapper_candidate=$(mktemp "$bin_dir/.scodex.XXXXXX")
     [[ ! -e $wrapper_target ]] || cp -a -- "$wrapper_target" \
@@ -189,6 +186,20 @@ if [[ ! -f $wrapper_target ]] || ! cmp -s -- "$repo_dir/bin/scodex" "$wrapper_ta
     printf 'Installed command: %s\n' "$wrapper_target"
 else
     printf 'Unchanged: %s\n' "$wrapper_target"
+fi
+
+if [[ ! -f $helper_target ]]; then
+    cp -- "$helper_source" "$helper_target"
+    chmod 600 -- "$helper_target"
+    printf 'Installed command support helper: %s\n' "$helper_target"
+elif cmp -s -- "$helper_source" "$helper_target"; then
+    printf 'Unchanged helper: %s\n' "$helper_target"
+else
+    helper_backup=$helper_target.backup-$(date -u +%Y%m%dT%H%M%SZ)
+    cp -a -- "$helper_target" "$helper_backup"
+    cp -- "$helper_source" "$helper_target"
+    chmod 600 -- "$helper_target"
+    printf 'Updated command support helper: %s (backed up %s)\n' "$helper_target" "$helper_backup"
 fi
 
 if commit=$(git -C "$repo_dir" rev-parse HEAD 2>/dev/null); then

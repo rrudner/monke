@@ -90,6 +90,47 @@ grep -q 'ast-grep (new)' "$test_root/legacy-configure.log"
 grep -qx ripgrep "$legacy_home/.config/scriptorium/tools.selected"
 ! grep -qx ast-grep "$legacy_home/.config/scriptorium/tools.selected"
 
+# Contract tests for `catalog-diff`.
+catalog_before=$test_root/catalog-before.tsv
+catalog_after=$test_root/catalog-after.tsv
+cat >"$catalog_before" <<'EOF'
+# name	command	mise-id	default	tier	label	description
+zeta	zeta	-	0	advanced	Zeta tool	Zeta
+alpha	alpha	-	0	advanced	Alpha tool	Alpha
+EOF
+cat >"$catalog_after" <<'EOF'
+# name	command	mise-id	default	tier	label	description
+alpha	alpha	-	0	advanced	Alpha tool	Alpha
+zeta	zeta	-	0	advanced	Zeta tool	Zeta
+beta	beta	-	0	advanced	Beta tool	Beta
+gamma	gamma	-	0	advanced	Gamma tool	Gamma
+EOF
+PATH="$test_root/bin:$PATH" HOME="$test_root/home" \
+    "$repo_dir/scripts/tools-manager.sh" catalog-diff "$catalog_before" "$catalog_after" 0 \
+    | tee "$test_root/catalog-diff.log"
+[[ "$(cat "$test_root/catalog-diff.log")" == $'beta\ngamma' ]]
+grep -qx beta "$test_root/catalog-diff.log"
+grep -qx gamma "$test_root/catalog-diff.log"
+
+cat >"$test_root/home/.local/state/scriptorium/tools-reconfigure-required" <<'EOF'
+ast-grep
+EOF
+PATH="$test_root/bin:$PATH" HOME="$test_root/home" \
+    "$repo_dir/scripts/tools-manager.sh" catalog-diff "$catalog_before" "$catalog_after" 1 \
+    >"$test_root/catalog-diff-merge.log"
+grep -qx ast-grep "$test_root/home/.local/state/scriptorium/tools-reconfigure-required"
+grep -qx beta "$test_root/home/.local/state/scriptorium/tools-reconfigure-required"
+grep -qx gamma "$test_root/home/.local/state/scriptorium/tools-reconfigure-required"
+[[ "$(cat "$test_root/home/.local/state/scriptorium/tools-reconfigure-required")" == $'ast-grep\nbeta\ngamma' ]]
+
+cat >"$test_root/home/.local/state/scriptorium/tools-reconfigure-required" <<'EOF'
+ast-grep
+EOF
+PATH="$test_root/bin:$PATH" HOME="$test_root/home" \
+    "$repo_dir/scripts/tools-manager.sh" catalog-diff "$catalog_before" "$catalog_after" 0 \
+    >"$test_root/catalog-diff-disabled.log"
+[[ "$(cat "$test_root/home/.local/state/scriptorium/tools-reconfigure-required")" == $'ast-grep' ]]
+
 "$repo_dir/scripts/generate-tools-readme.sh" --check
 
 printf 'Tool smoke tests passed.\n'
