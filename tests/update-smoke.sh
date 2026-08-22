@@ -72,7 +72,8 @@ export CODEX_TEST_LOG=$codex_log
 before=$(git -C "$work_base/local" rev-parse HEAD)
 "$repo_dir/bin/scodex" normal >/dev/null
 [[ -s "$codex_log" ]]
-grep -q '^args:--profile scriptorium-normal$' "$codex_log"
+grep -q '^args:--profile scriptorium-normal -c shell_environment_policy.inherit=all$' \
+    "$codex_log"
 
 # explicit update should apply remote changes and continue to updated state
 CODEX_TEST_LOG=$test_root/update-call.log "$repo_dir/bin/scodex" update \

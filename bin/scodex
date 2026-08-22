@@ -382,6 +382,7 @@ fi
 run_started=$(date +%s)
 project_dir=$PWD
 status=0
-codex --profile "scriptorium-$profile" "$@" || status=$?
+codex --profile "scriptorium-$profile" \
+    -c shell_environment_policy.inherit=all "$@" || status=$?
 record_project_run "${CODEX_HOME:-$HOME/.codex}" "$run_started" "$project_dir"
 exit "$status"
