@@ -24,6 +24,16 @@ load_tools_env() {
     fi
 }
 
+toml_basic_string() {
+    local value=$1
+    value=${value//\\/\\\\}
+    value=${value//\"/\\\"}
+    value=${value//$'\n'/\\n}
+    value=${value//$'\r'/\\r}
+    value=${value//$'\t'/\\t}
+    printf '"%s"' "$value"
+}
+
 review_pending_tools() {
     local pending_tools=$state_dir/tools-reconfigure-required
     local tools_manager=$repo_dir/scripts/tools-manager.sh
@@ -382,7 +392,9 @@ fi
 run_started=$(date +%s)
 project_dir=$PWD
 status=0
+shell_path=$(toml_basic_string "$PATH")
 codex --profile "scriptorium-$profile" \
-    -c shell_environment_policy.inherit=all "$@" || status=$?
+    -c shell_environment_policy.inherit=all \
+    -c "shell_environment_policy.set.PATH=$shell_path" "$@" || status=$?
 record_project_run "${CODEX_HOME:-$HOME/.codex}" "$run_started" "$project_dir"
 exit "$status"
