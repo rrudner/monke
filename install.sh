@@ -178,8 +178,11 @@ helper_source=$repo_dir/scripts/preferences.sh
 helper_target=$bin_dir/scriptorium-preferences.sh
 if [[ ! -f $wrapper_target ]] || ! cmp -s -- "$repo_dir/bin/scodex" "$wrapper_target"; then
     wrapper_candidate=$(mktemp "$bin_dir/.scodex.XXXXXX")
-    [[ ! -e $wrapper_target ]] || cp -a -- "$wrapper_target" \
-        "$wrapper_target.backup-$(date -u +%Y%m%dT%H%M%SZ)"
+    if [[ -e $wrapper_target ]]; then
+        wrapper_backup=$wrapper_target.backup-$(date -u +%Y%m%dT%H%M%SZ)
+        cp -a -- "$wrapper_target" "$wrapper_backup"
+        chmod a-x -- "$wrapper_backup"
+    fi
     cp -- "$repo_dir/bin/scodex" "$wrapper_candidate"
     chmod 700 -- "$wrapper_candidate"
     mv -- "$wrapper_candidate" "$wrapper_target"

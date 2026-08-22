@@ -34,6 +34,8 @@ Optimize for correct results with minimal context and tool output. Follow more s
 
 ## Output and Markdown
 
+- Avoid generic AI-sounding prose. Do not use em or en dashes; use commas, semicolons, or
+  parentheses.
 - Keep user-facing responses concise. Default to at most five sentences unless the task requires
   more detail or the user explicitly asks for it.
 - Lead with the outcome. Do not narrate routine steps, tool usage, or reasoning unless it helps

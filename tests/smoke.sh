@@ -73,6 +73,15 @@ grep -qx 'update_check=1' "$test_root/home/.config/scriptorium/preferences"
 grep -qx 'tools=0' "$test_root/home/.config/scriptorium/preferences"
 [[ -f "$test_root/home/.config/scriptorium/tools.catalog-reviewed" ]]
 
+printf '\n# Force wrapper replacement.\n' >>"$test_root/home/.local/bin/scodex"
+PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$test_root/home" \
+CODEX_HOME="$test_root/home/.codex" \
+    "$repo_dir/install.sh" --apply-saved >"$test_root/wrapper-backup.log"
+wrapper_backup=$(find "$test_root/home/.local/bin" -maxdepth 1 -type f \
+    -name 'scodex.backup-*' -print -quit)
+[[ -n $wrapper_backup ]]
+[[ ! -x $wrapper_backup ]]
+
 backup_count=$(find "$test_root/home" -name '*.backup-*' | wc -l)
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$test_root/home" \
 CODEX_HOME="$test_root/home/.codex" \

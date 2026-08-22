@@ -3,7 +3,7 @@
 **A portable, updateable Codex CLI workspace for Linux.**
 
 Scriptorium gives you the same Codex profiles, instructions, terminal integration, and optional
-developer tools on every machine—without taking ownership of your existing configuration.
+developer tools on every machine, without taking ownership of your existing configuration.
 Everything starts through one command: `scodex`.
 
 ## Why Scriptorium?
@@ -25,9 +25,9 @@ git clone https://github.com/rrudner/scriptorium.git ~/.local/share/scriptorium/
 
 The installer supports Bash, Zsh, and Fish. It lets you choose:
 
-- tmux integration—enabled by default when tmux is already installed;
-- update checks on `scodex` startup—enabled by default;
-- isolated optional tools—disabled by default.
+- tmux integration, enabled by default when tmux is already installed;
+- update checks on `scodex` startup, enabled by default;
+- isolated optional tools, disabled by default.
 
 Change these choices at any time with:
 
@@ -62,6 +62,7 @@ scodex tools status            # Show active tools and their providers
 scodex tools update            # Update locally managed tools
 scodex tools remove NAME       # Remove a tool from the selection
 scodex context                 # Show current main-context pressure for diagnostics
+scodex stats                   # Estimate context saved by delegation in the latest session
 ```
 
 ## How it works

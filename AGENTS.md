@@ -15,6 +15,8 @@
   path and propose consolidation or a scoped migration follow-up.
 - Use portable Bash and keep external dependencies limited to commands documented in `README.md`.
 - Keep all user-facing script output, prompts, comments, and documentation in English.
+- Avoid generic AI-sounding prose in documentation. Do not use em or en dashes; use plain
+  punctuation such as commas, semicolons, or parentheses.
 - Preserve existing installer flags and saved preference keys unless a migration is included.
 - Updates run only from `scodex`, remain fast-forward-only, and must never prevent Codex from
   starting.
@@ -32,3 +34,8 @@
   change.
 - Review changed files for accidental home-directory data, credentials, generated archives, and
   unrelated edits before finishing.
+
+## Git authorization
+
+- A user request to commit and push explicitly authorizes committing the requested changes and
+  pushing them to the current branch's configured upstream. Do not ask for separate confirmation.
