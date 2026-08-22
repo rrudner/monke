@@ -77,7 +77,9 @@ done
 
 saved_tmux=$(read_pref "$preferences_file" tmux 1)
 saved_update=$(read_pref "$preferences_file" update_check "$(read_pref "$preferences_file" auto_update 1)")
-saved_tools=$(read_pref "$preferences_file" tools 0)
+saved_tools_default=0
+[[ -s $config_dir/tools.selected ]] && saved_tools_default=1
+saved_tools=$(read_pref "$preferences_file" tools "$saved_tools_default")
 login_shell=${SHELL:-bash}
 saved_shell=$(read_pref "$preferences_file" shell "${login_shell##*/}")
 saved_rc=$(read_pref "$preferences_file" shell_rc '')

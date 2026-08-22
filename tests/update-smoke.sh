@@ -56,7 +56,6 @@ cat >"$HOME/.config/scriptorium/preferences" <<EOF
 repo_dir=$work_base/local
 tmux=0
 update_check=1
-tools=1
 shell=bash
 shell_rc=
 EOF
@@ -91,6 +90,8 @@ fi
 grep -q '^scodex: downloading repository update$' "$test_root/update-output.log"
 grep -q '^scodex: applying the updated configuration$' "$test_root/update-output.log"
 grep -q '^scodex: finalizing update$' "$test_root/update-output.log"
+grep -qx 'tools=1' "$HOME/.config/scriptorium/preferences"
+grep -qx 'ripgrep' "$HOME/.config/scriptorium/tools.selected"
 grep -qx 'future-tool' \
     "$HOME/.local/state/scriptorium/tools-reconfigure-required"
 grep -qx 'ast-grep' \
