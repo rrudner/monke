@@ -1,0 +1,3 @@
+Implement `tasker report --json`. Output exactly color (string), tags (array), and status (the
+string "ok"). Reuse the existing json_escape helper rather than adding another JSON escaper. Run
+`./tests/check.sh json-report`.

@@ -1,6 +1,6 @@
 interface:
   display_name: "Delegate"
-  short_description: "Route bounded work to efficient Codex models"
-  default_prompt: "Use $scriptorium-delegate to offload this bounded task to the cheapest suitable model."
+  short_description: "Route substantial independent work when it saves context"
+  default_prompt: "Use $scriptorium-delegate only when its concurrency or context-saving threshold is met; keep small single-goal work local."
 policy:
   allow_implicit_invocation: true

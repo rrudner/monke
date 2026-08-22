@@ -1,0 +1,3 @@
+Read this repository without modifying it. Explain the exact precedence of the effective color
+setting across the default, the config file, TASKER_COLOR, and --color. Name the relevant function
+and return the precedence from lowest to highest in one concise line.

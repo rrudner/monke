@@ -1,0 +1,2 @@
+The config-precedence check fails when the config file path contains spaces. Diagnose the cause,
+make the smallest safe fix, and run `./tests/check.sh config-precedence`.

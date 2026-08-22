@@ -1,6 +1,6 @@
 ---
 name: scriptorium-delegate
-description: Automatically delegate bounded coding, repository exploration, research, review, log analysis, testing, or implementation to a concise leaf Codex agent using GPT-5.3-Codex-Spark or GPT-5.6 Luna, Terra, or Sol. Use when delegation is likely to reduce main-thread context or when AGENTS.md requests token-efficient model routing. Choose the cheapest model likely to succeed, prefer Spark for narrow coding when available, and do not ask the user for permission to delegate.
+description: Delegate substantial independent coding, exploration, research, review, log analysis, testing, or implementation when a concise leaf agent is likely to reduce main-thread context or useful work can run concurrently. Keep small single-goal work local. Choose the cheapest model likely to succeed and do not ask permission for qualifying delegation.
 ---
 
 # Delegate
@@ -15,11 +15,25 @@ required by the delegated action itself.
 
 ## Decide
 
-Delegate bounded independent work automatically, including small searches, file reads, log
-checks, and focused tests. Prefer Spark-backed delegation because its separate usage limit
-protects the primary model's budget. Keep only tightly coupled serial work local, along with tasks
-whose delegation packet plus returned synthesis would consume more primary-model context than
-direct execution. Do not keep an otherwise suitable task local merely because it is small.
+Default to local execution. When `SCRIPTORIUM_ACTIVE=1` and a repository task is likely to inspect
+more than one file, use the single `scodex context` result requested by the installed instructions.
+Apply its unopened-context budget: `low` = 64 KB, `medium` = 24 KB or more than 8 substantive files,
+`high` = 8 KB or more than 3 substantive files, and `unknown` = the `low` budget. File count alone
+does not qualify small stubs that targeted tools can summarize cheaply. Do not measure again in the
+same turn. Small searches, focused fixes, and single test runs remain local while inside the budget.
+A separate model usage limit does not imply lower total token use.
+
+Delegate automatically only when at least one condition is satisfied:
+
+- At least two independent workstreams can run concurrently while the parent performs useful work.
+- Unopened exploration exceeds the context-pressure budget, and a worker can replace that material
+  with the result limit defined below.
+- The user explicitly requests delegation or parallel agent work.
+
+Before spawning, compare the delegation packet plus expected result with the unopened context it
+replaces. Keep the work local when the saving is doubtful. Never delegate material already read by
+the parent. Do not delegate merely to run a single test, repeat a completed check, or obtain a
+second opinion.
 
 Use one agent by default. Use parallel agents only for genuinely independent work when latency or
 coverage justifies the extra tokens. Never delegate when acting as a leaf worker.

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fixture_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+# fixture_dir is resolved at runtime.
+# shellcheck disable=SC1091
+source "$fixture_dir/lib/tasker.sh"
+
+tasker_main "$@"

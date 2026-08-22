@@ -61,6 +61,7 @@ scodex tools configure         # Select optional tools in a terminal UI
 scodex tools status            # Show active tools and their providers
 scodex tools update            # Update locally managed tools
 scodex tools remove NAME       # Remove a tool from the selection
+scodex context                 # Show current main-context pressure for diagnostics
 ```
 
 ## How it works
@@ -79,6 +80,12 @@ scodex tools remove NAME       # Remove a tool from the selection
 `scodex` loads a namespaced Codex profile, exposes only the selected tool environment, checks for
 updates when enabled, and then starts Codex. Your regular shell remains unchanged apart from the
 small launcher and optional tmux blocks selected during installation.
+
+Scriptorium keeps small, single-goal work local. Before broad exploration it reads only the current
+thread's token counters through `scodex context`, then lowers the delegation threshold as the main
+context fills. It delegates only unopened file or log context that a concise worker result can
+replace; having a separate Spark usage limit alone is not treated as a token saving. Missing or
+incompatible telemetry falls back to the conservative low-pressure threshold.
 
 ## Safe by design
 
@@ -137,10 +144,28 @@ upgrade tools; `scodex` checks for local tool updates at most weekly and only di
 ./tests/smoke.sh
 ./tests/tools-smoke.sh
 ./tests/update-smoke.sh
+./tests/context-pressure-smoke.sh
 ```
 
 These suites cover safe installation and migration, tool isolation, update behavior, and failure
 rollback without modifying the real home directory.
+
+## Token benchmark
+
+Prepare and inspect the six-task Codex versus Scriptorium pilot without using model tokens:
+
+```bash
+./scripts/token-benchmark.sh prepare
+```
+
+The paid run is deliberately separate: `./scripts/token-benchmark.sh run [OUTPUT_DIR]`. It uses
+isolated `CODEX_HOME` directories, the same Terra model settings for both variants, and writes a
+per-task quality and token report. The baseline has no Scriptorium instructions or agents; the
+Scriptorium variant uses the installed normal profile and delegation setup. One run per task is
+directional evidence only, not a statistically significant result.
+
+Use `./scripts/token-benchmark.sh run-one TASK VARIANT OUTPUT_DIR` for a single inexpensive
+regression check, for example with `02-config-path scriptorium`.
 
 ## Overlap policy
 

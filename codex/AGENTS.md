@@ -74,30 +74,18 @@ Optimize for correct results with minimal context and tool output. Follow more s
 
 ## Delegation and cost control
 
-- When `SCRIPTORIUM_ACTIVE=1`, invoke `$scriptorium-delegate` automatically for bounded,
-  independent work, including small searches, file
-  reads, log checks, and focused tests. Prefer Spark-backed delegation because Spark uses a
-  separate usage limit and protects the primary model's budget. The user pre-authorizes agent
-  delegation and model selection; do not ask before spawning. This does not waive approvals for
-  privileged or destructive actions.
-- Keep only tightly coupled serial work local, along with tasks whose delegation packet and
-  returned synthesis would consume more primary-model context than direct execution. Do not keep
-  an otherwise suitable task local merely because it is small. Prefer one delegate at a time.
-- Prefer Spark for narrow coding because it has a separate usage limit. Never infer Spark access
-  from the subscription plan, account label, startup state, tool metadata, suggested model lists,
-  or a cached assumption. Do not report Spark as unavailable before a direct spawn fails. On the
-  first suitable delegation in a session, request Spark directly. If spawning succeeds, treat it as
-  available for the rest of that session. On a transient timeout, overload, rate-limit, or
-  temporary-availability error, use Luna for the current task and retry Spark on the first
-  suitable delegation after the service-provided retry delay, or after 10 minutes when no delay
-  is provided. A successful retry clears the failure state. Only an explicit permanent
-  authorization, unsupported-model, or account-access error disables Spark for the rest of the
-  session. Fall back without asking.
-  Use Luna for clear work, Terra for everyday reasoning, and Sol only for ambiguity, security,
-  or one justified escalation.
-- Send only the goal, at most five paths or symbols, task-specific constraints, and the done
-  condition. Never forward chat history, whole files, or raw logs a worker can read itself.
-- Require at most 120 words or 6 bullets with outcome, paths/evidence, verification, and risk.
-  A leaf worker must never delegate again; use `ESCALATE: reason` when scope is insufficient.
+- For coding, diagnosis, research, or review likely to inspect more than one file, run
+  `scodex context` once before broad exploration. Do not run it for conversational answers or one
+  known file. Treat `context_pressure=unknown` conservatively; the command must never block work.
+- Keep small, single-goal work local. Before reading unopened material, invoke
+  `$scriptorium-delegate` when independent work can run concurrently or the expected new context
+  exceeds the matching budget: `low` = 64 KB, `medium` = 24 KB or more than 8 substantive files,
+  `high` = 8 KB or more than 3 substantive files. With `unknown`, use the `low` budget. File count
+  alone never qualifies when the files are small stubs that targeted tools can summarize cheaply.
+- Estimate size from metadata or targeted matches, not by first reading the material. Delegate only
+  the unopened branch; never delegate context already gathered by the parent. A separate Spark
+  usage limit is not evidence of token savings. Explicit user delegation bypasses these thresholds.
+- Use one delegate by default and follow the skill's routing, packet, fallback, and result limits.
+  Do not delegate merely to run a single test or re-check work already completed by the parent.
 - Keep progress updates and final responses concise. Avoid external research unless current or
   unavailable information is required.

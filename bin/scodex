@@ -35,6 +35,45 @@ review_pending_tools() {
     fi
 }
 
+show_context_pressure() {
+    local codex_home=${CODEX_HOME:-"$HOME/.codex"} thread_id=${CODEX_THREAD_ID:-}
+    local session_file line input_tokens context_window percent pressure
+    if [[ ${#thread_id} -ne 36 || $thread_id == *[!0-9a-f-]* \
+        || ${thread_id:8:1} != - || ${thread_id:13:1} != - \
+        || ${thread_id:18:1} != - || ${thread_id:23:1} != - ]]; then
+        printf '%s\n' 'context_pressure=unknown'
+        return 0
+    fi
+    session_file=$(find "$codex_home/sessions" -type f \
+        -name "rollout-*-$thread_id.jsonl" -print -quit 2>/dev/null) || true
+    if [[ ! -f $session_file ]]; then
+        printf '%s\n' 'context_pressure=unknown'
+        return 0
+    fi
+    line=$(awk 'index($0, "\"token_count\"") { latest=$0 } END { print latest }' \
+        "$session_file")
+    input_tokens=$(sed -n \
+        's/.*"last_token_usage"[[:space:]]*:[[:space:]]*{"input_tokens"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' \
+        <<<"$line")
+    context_window=$(sed -n \
+        's/.*"model_context_window"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' \
+        <<<"$line")
+    if [[ ! $input_tokens =~ ^[0-9]+$ || ! $context_window =~ ^[1-9][0-9]*$ ]]; then
+        printf '%s\n' 'context_pressure=unknown'
+        return 0
+    fi
+    percent=$(( input_tokens * 100 / context_window ))
+    if (( percent < 55 )); then
+        pressure=low
+    elif (( percent < 75 )); then
+        pressure=medium
+    else
+        pressure=high
+    fi
+    printf 'context_pressure=%s input_tokens=%s context_window=%s percent=%s\n' \
+        "$pressure" "$input_tokens" "$context_window" "$percent"
+}
+
 reconcile_tool_catalog() {
     local tools_manager=$repo_dir/scripts/tools-manager.sh
     if [[ -x $tools_manager && $(read_pref "$preferences_file" tools 0) == 1 ]]; then
@@ -52,6 +91,10 @@ if [[ -n $configured_repo ]]; then
 fi
 
 case ${1:-} in
+    context)
+        show_context_pressure
+        exit 0
+        ;;
     update)
         SCRIPTORIUM_MANUAL_UPDATE=1 \
             SCRIPTORIUM_SKIP_SNOOZE_CHECK=1 \

@@ -41,6 +41,13 @@ grep -q 'default_prompt' "$test_root/home/.codex/skills/reuse-first/agents/opena
 grep -q 'overlap exists' "$test_root/home/.codex/skills/reuse-first/SKILL.md"
 grep -q '^<!-- >>> scriptorium >>> -->$' "$test_root/home/.codex/AGENTS.md"
 grep -q '^Keep this content\.$' "$test_root/home/.codex/AGENTS.md"
+grep -q 'Keep small, single-goal work local' "$test_root/home/.codex/AGENTS.md"
+if grep -q 'including small searches' "$test_root/home/.codex/AGENTS.md"; then
+    printf 'Installed Scriptorium block retained aggressive delegation instructions.\n' >&2
+    exit 1
+fi
+grep -q 'Default to local execution' \
+    "$test_root/home/.codex/skills/scriptorium-delegate/SKILL.md"
 grep -q '^# >>> scriptorium >>>$' "$test_root/home/.tmux.conf"
 grep -q '^set -g status off$' "$test_root/home/.tmux.conf"
 grep -q '^alias user_command=true$' "$test_root/home/.bashrc"

@@ -115,6 +115,7 @@ rm -f -- "$legacy_agent"
 
 legacy_skill=$(mktemp "$codex_home/.legacy-skill.XXXXXX")
 legacy_skill_yaml=$(mktemp "$codex_home/.legacy-skill-yaml.XXXXXX")
+legacy_skill_v1=0
 sed -e 's/^name: scriptorium-delegate$/name: delegate/' \
     -e 's/`scriptorium_worker`/`token_worker`/' \
     "$package_dir/skills/scriptorium-delegate/SKILL.md" >"$legacy_skill"
@@ -123,8 +124,18 @@ sed 's/\$scriptorium-delegate/\$delegate/' \
 if [[ -f $codex_home/skills/delegate/SKILL.md ]] \
     && [[ -f $codex_home/skills/delegate/agents/openai.yaml ]] \
     && [[ $(find "$codex_home/skills/delegate" -type f | wc -l) -eq 2 ]] \
-    && cmp -s -- "$codex_home/skills/delegate/SKILL.md" "$legacy_skill" \
-    && cmp -s -- "$codex_home/skills/delegate/agents/openai.yaml" "$legacy_skill_yaml"; then
+    && [[ $(sha256sum "$codex_home/skills/delegate/SKILL.md" | awk '{ print $1 }') \
+        == 133767280a94d6f61c3977f0f4d371b15266666667a43118895239390ab4c597 ]] \
+    && [[ $(sha256sum "$codex_home/skills/delegate/agents/openai.yaml" | awk '{ print $1 }') \
+        == 6a3b29ff21c4fbe4d47fc271124dd5bb984e35efaf552f804b0f1466d4776edf ]]; then
+    legacy_skill_v1=1
+fi
+if [[ -f $codex_home/skills/delegate/SKILL.md ]] \
+    && [[ -f $codex_home/skills/delegate/agents/openai.yaml ]] \
+    && [[ $(find "$codex_home/skills/delegate" -type f | wc -l) -eq 2 ]] \
+    && { [[ $legacy_skill_v1 == 1 ]] \
+        || { cmp -s -- "$codex_home/skills/delegate/SKILL.md" "$legacy_skill" \
+            && cmp -s -- "$codex_home/skills/delegate/agents/openai.yaml" "$legacy_skill_yaml"; }; }; then
     mv -- "$codex_home/skills/delegate" "$codex_home/skills/delegate.backup-$backup_stamp"
     printf 'Retired legacy skill: %s\n' "$codex_home/skills/delegate"
 elif [[ -e $codex_home/skills/delegate ]]; then
