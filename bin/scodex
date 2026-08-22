@@ -6,6 +6,7 @@ repo_dir=$(cd -- "$launcher_dir/.." && pwd)
 config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}/scriptorium
 state_dir=${XDG_STATE_HOME:-"$HOME/.local/state"}/scriptorium
 preferences_file=$config_dir/preferences
+tools_env=$config_dir/tools-env.sh
 if [[ -f $launcher_dir/scriptorium-preferences.sh ]]; then
     source "$launcher_dir/scriptorium-preferences.sh"
 elif [[ -f $repo_dir/scripts/preferences.sh ]]; then
@@ -15,10 +16,18 @@ else
     exit 1
 fi
 
+load_tools_env() {
+    if [[ -f $tools_env ]]; then
+        source "$tools_env"
+    else
+        export SCRIPTORIUM_ACTIVE=1 SCRIPTORIUM_TOOLS=
+    fi
+}
+
 review_pending_tools() {
     local pending_tools=$state_dir/tools-reconfigure-required
     local tools_manager=$repo_dir/scripts/tools-manager.sh
-    local tools_env=$config_dir/tools-env.sh pending_names
+    local pending_names
     [[ -s $pending_tools && $(read_pref "$preferences_file" tools 0) == 1 ]] || return 0
     pending_names=$(paste -sd, "$pending_tools")
     printf 'scodex: new optional tools require your selection: %s\n' "$pending_names"
@@ -26,7 +35,7 @@ review_pending_tools() {
         if "$tools_manager" configure --review "$pending_names"; then
             "$repo_dir/codex/scripts/render-agents.sh"
             rm -f -- "$pending_tools"
-            source "$tools_env"
+            load_tools_env
         else
             printf 'scodex: tool selection remains pending; Codex will continue\n' >&2
         fi
@@ -352,16 +361,10 @@ case ${1:-} in
     --hard|hard) profile=hard; shift ;;
 esac
 
-tools_env=$config_dir/tools-env.sh
-if [[ -f $tools_env ]]; then
-    source "$tools_env"
-else
-    export SCRIPTORIUM_ACTIVE=1 SCRIPTORIUM_TOOLS=
-fi
-
 if (( ! skip_update )) && [[ $(read_pref "$preferences_file" update_check "$(read_pref "$preferences_file" auto_update 1)") != 0 ]]; then
     SCRIPTORIUM_MANUAL_UPDATE=1 "$repo_dir/scripts/update-repository.sh" check || true
 fi
+load_tools_env
 
 tools_manager=$repo_dir/scripts/tools-manager.sh
 reconcile_tool_catalog

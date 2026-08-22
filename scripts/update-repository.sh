@@ -38,6 +38,25 @@ log() {
     printf '%s\n' "$1" >>"$log_file"
 }
 
+run_logged_with_heartbeat() {
+    local activity=$1 pid heartbeat_pid status
+    shift
+    printf 'scodex: %s\n' "$activity"
+    "$@" >>"$log_file" 2>&1 &
+    pid=$!
+    (
+        while sleep 10; do
+            kill -0 "$pid" 2>/dev/null || exit 0
+            printf 'scodex: still working, %s (details: %s)\n' "$activity" "$log_file"
+        done
+    ) &
+    heartbeat_pid=$!
+    if wait "$pid"; then status=0; else status=$?; fi
+    kill "$heartbeat_pid" 2>/dev/null || true
+    wait "$heartbeat_pid" 2>/dev/null || true
+    return "$status"
+}
+
 mkdir -p -- "$state_dir"
 : >"$log_file"
 
@@ -111,6 +130,7 @@ install_update() {
     fi
     catalog_before=$(mktemp "$state_dir/.tools-catalog-before.XXXXXX")
     cp -- "$repo_dir/tools/catalog.tsv" "$catalog_before"
+    printf 'scodex: downloading repository update\n'
     if ! timeout 10s git -C "$repo_dir" pull --ff-only --quiet >>"$log_file" 2>&1; then
         rm -f -- "$catalog_before"
         log "pull failed"
@@ -122,11 +142,13 @@ install_update() {
     fi
     new_tools=$("$tools_manager" catalog-diff "$catalog_before" "$repo_dir/tools/catalog.tsv" "$merge_pending")
     rm -f -- "$catalog_before"
-    if ! "$repo_dir/install.sh" --apply-saved --no-package-install >>"$log_file" 2>&1; then
+    if ! run_logged_with_heartbeat 'applying the updated configuration' \
+        "$repo_dir/install.sh" --apply-saved --no-package-install; then
         log "install failed"
         printf 'scodex: install failed, continuing codex\n'
         return 0
     fi
+    printf 'scodex: finalizing update\n'
     current_commit=$(git -C "$repo_dir" rev-parse HEAD 2>>"$log_file")
     printf '%s\n' "$current_commit" >"$deployed_file"
     printf 'scodex: update installed %s\n' "${current_commit:0:8}"

@@ -87,6 +87,9 @@ if ! grep -q 'new optional tools are available: future-tool' "$test_root/update-
     head -20 "$test_root/update-output.log" >&2
     exit 1
 fi
+grep -q '^scodex: downloading repository update$' "$test_root/update-output.log"
+grep -q '^scodex: applying the updated configuration$' "$test_root/update-output.log"
+grep -q '^scodex: finalizing update$' "$test_root/update-output.log"
 grep -qx 'future-tool' \
     "$HOME/.local/state/scriptorium/tools-reconfigure-required"
 grep -qx 'ast-grep' \
