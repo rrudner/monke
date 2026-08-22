@@ -45,21 +45,34 @@ output=$(CODEX_HOME=$test_root/missing CODEX_THREAD_ID=$thread_id \
     "$repo_dir/bin/scodex" context)
 [[ $output == context_pressure=unknown ]]
 
+mkdir -p "$test_root/project/.scriptorium"
+cat >"$test_root/project/.scriptorium/stats" <<EOF
+version=1
+thread_id=$thread_id
+run_started_at=200
+EOF
 cat >"$session_file" <<EOF
-{"type":"session_meta","payload":{"id":"$thread_id","parent_thread_id":null,"source":"cli"}}
+{"type":"session_meta","payload":{"id":"$thread_id","parent_thread_id":null,"cwd":"$test_root/project","source":"cli"}}
+{"type":"event_msg","payload":{"type":"task_started","started_at":100}}
 {"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":900,"cached_input_tokens":400,"output_tokens":100,"total_tokens":1000},"last_token_usage":{"input_tokens":500,"cached_input_tokens":300,"output_tokens":50,"total_tokens":550},"model_context_window":200000}}}
+{"type":"event_msg","payload":{"type":"task_started","started_at":200}}
+{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":450,"cached_input_tokens":200,"output_tokens":50,"total_tokens":500},"last_token_usage":{"input_tokens":450,"cached_input_tokens":200,"output_tokens":50,"total_tokens":500},"model_context_window":200000}}}
 EOF
 child_id=01a02923-c4e7-7e33-9954-efaf9b17497c
 child_file=$session_dir/rollout-test-$child_id.jsonl
 cat >"$child_file" <<EOF
 {"type":"session_meta","payload":{"id":"$child_id","parent_thread_id":"$thread_id","source":{"subagent":{}}}}
+{"type":"event_msg","payload":{"type":"task_started","started_at":210}}
 {"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":100,"cached_input_tokens":20,"output_tokens":10,"total_tokens":110},"last_token_usage":{"input_tokens":100,"cached_input_tokens":20,"output_tokens":10,"total_tokens":110},"model_context_window":200000}}}
 {"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":500,"cached_input_tokens":120,"output_tokens":60,"total_tokens":560},"last_token_usage":{"input_tokens":400,"cached_input_tokens":100,"output_tokens":50,"total_tokens":450},"model_context_window":200000}}}
 EOF
-output=$(CODEX_HOME=$test_root/codex CODEX_THREAD_ID=$thread_id \
+output=$(cd "$test_root/project" && CODEX_HOME=$test_root/codex CODEX_THREAD_ID='' \
     "$repo_dir/bin/scodex" stats)
-grep -qx 'main_tokens=1000 cached=400' <<<"$output"
+grep -qx 'main_tokens=1500 cached=600' <<<"$output"
 grep -qx 'delegate_sessions=1 delegate_tokens=560 cached=120' <<<"$output"
+grep -qx 'thread_total_tokens=2060 cached=720' <<<"$output"
+grep -qx 'last_run_tokens=1060 cached=320 started_at=200' <<<"$output"
+grep -qx 'last_turn_tokens=500 cached=200' <<<"$output"
 grep -qx 'estimated_context_saved=250' <<<"$output"
 
 printf 'Context pressure smoke tests passed.\n'

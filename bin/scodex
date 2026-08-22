@@ -48,6 +48,55 @@ find_session_file() {
         -print -quit 2>/dev/null
 }
 
+session_usage() {
+    local session_file=$1 since=${2:-0}
+    awk -v since="$since" '
+        function number_after(value, key, copy) {
+            copy = value
+            sub("^.*\"" key "\"[[:space:]]*:[[:space:]]*", "", copy)
+            sub("[^0-9].*$", "", copy)
+            return copy ~ /^[0-9]+$/ ? copy + 0 : 0
+        }
+        function flush() {
+            if (!have_usage) return
+            last_total = current_total
+            last_cached = current_cached
+            if (include_task) {
+                total += current_total
+                cached += current_cached
+            }
+            have_usage = 0
+        }
+        BEGIN { include_task = since == 0 }
+        index($0, "\"task_started\"") {
+            flush()
+            started = number_after($0, "started_at")
+            include_task = since == 0 || (started > 0 && started >= since)
+            saw_task = 1
+            next
+        }
+        index($0, "\"token_count\"") && index($0, "\"total_token_usage\"") {
+            usage = $0
+            sub("^.*\"total_token_usage\"[^{]*\\{", "", usage)
+            sub("\\}.*$", "", usage)
+            current_total = number_after(usage, "total_tokens")
+            current_cached = number_after(usage, "cached_input_tokens")
+            if (!saw_task) include_task = since == 0
+            have_usage = 1
+        }
+        END {
+            flush()
+            printf "%d %d %d %d\n", total, cached, last_total, last_cached
+        }
+    ' "$session_file"
+}
+
+read_project_stats() {
+    local stats_file=$PWD/.scriptorium/stats key=$1
+    [[ -f $stats_file && ! -L $stats_file ]] || return 0
+    sed -n "s/^${key}=//p" "$stats_file" | tail -n 1
+}
+
 show_context_pressure() {
     local codex_home=${CODEX_HOME:-"$HOME/.codex"} thread_id=${CODEX_THREAD_ID:-}
     local session_file line input_tokens context_window percent pressure
@@ -86,10 +135,16 @@ show_context_pressure() {
 
 show_stats() {
     local codex_home=${CODEX_HOME:-"$HOME/.codex"} thread_id=${CODEX_THREAD_ID:-}
-    local session_file candidate meta line main_total main_cached child_file
-    local child_line child_total child_cached first_input peak_input returned_output estimate
-    local delegate_count=0 delegate_total=0 delegate_cached=0 saved_context=0
+    local session_file candidate meta child_file child_line usage run_usage
+    local main_total main_cached main_last main_last_cached child_total child_cached
+    local run_started main_run=0 main_run_cached=0 child_run child_run_cached
+    local first_input peak_input returned_output estimate
+    local delegate_count=0 delegate_total=0 delegate_cached=0 delegate_run=0
+    local delegate_run_cached=0 saved_context=0
 
+    if ! valid_thread_id "$thread_id"; then
+        thread_id=$(read_project_stats thread_id)
+    fi
     if valid_thread_id "$thread_id"; then
         session_file=$(find_session_file "$codex_home" "$thread_id") || true
     else
@@ -109,27 +164,35 @@ show_stats() {
         return 0
     fi
 
-    line=$(awk 'index($0, "\"token_count\"") { latest=$0 } END { print latest }' \
-        "$session_file")
-    main_total=$(sed -n 's/.*"total_token_usage"[^{]*{[^}]*"total_tokens"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' <<<"$line")
-    main_cached=$(sed -n 's/.*"total_token_usage"[^{]*{[^}]*"cached_input_tokens"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' <<<"$line")
-    if [[ ! $main_total =~ ^[0-9]+$ ]]; then
+    usage=$(session_usage "$session_file" 0)
+    read -r main_total main_cached main_last main_last_cached <<<"$usage"
+    if [[ ! $main_total =~ ^[0-9]+$ || $main_total == 0 ]]; then
         printf '%s\n' 'stats=unavailable reason=no-token-telemetry'
         return 0
     fi
-    [[ $main_cached =~ ^[0-9]+$ ]] || main_cached=0
+    run_started=$(read_project_stats run_started_at)
+    [[ $run_started =~ ^[0-9]+$ ]] || run_started=0
+    if (( run_started > 0 )); then
+        run_usage=$(session_usage "$session_file" "$run_started")
+        read -r main_run main_run_cached _ _ <<<"$run_usage"
+    fi
 
     while IFS= read -r child_file; do
         meta=$(awk 'index($0, "\"session_meta\"") { print; exit }' "$child_file")
         [[ $meta == *"\"parent_thread_id\":\"$thread_id\""* ]] || continue
-        child_line=$(awk 'index($0, "\"token_count\"") { latest=$0 } END { print latest }' \
-            "$child_file")
-        child_total=$(sed -n 's/.*"total_token_usage"[^{]*{[^}]*"total_tokens"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' <<<"$child_line")
-        [[ $child_total =~ ^[0-9]+$ ]] || continue
-        child_cached=$(sed -n 's/.*"total_token_usage"[^{]*{[^}]*"cached_input_tokens"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' <<<"$child_line")
-        [[ $child_cached =~ ^[0-9]+$ ]] || child_cached=0
+        usage=$(session_usage "$child_file" 0)
+        read -r child_total child_cached _ _ <<<"$usage"
+        (( child_total > 0 )) || continue
+        if (( run_started > 0 )); then
+            run_usage=$(session_usage "$child_file" "$run_started")
+            read -r child_run child_run_cached _ _ <<<"$run_usage"
+        else
+            child_run=0 child_run_cached=0
+        fi
         first_input=$(sed -n 's/.*"last_token_usage"[^{]*{[^}]*"input_tokens"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$child_file" | head -1)
         peak_input=$(sed -n 's/.*"last_token_usage"[^{]*{[^}]*"input_tokens"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$child_file" | sort -n | tail -1)
+        child_line=$(awk 'index($0, "\"token_count\"") { latest=$0 } END { print latest }' \
+            "$child_file")
         returned_output=$(sed -n 's/.*"last_token_usage"[^{]*{[^}]*"output_tokens"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' <<<"$child_line")
         [[ $first_input =~ ^[0-9]+$ ]] || first_input=0
         [[ $peak_input =~ ^[0-9]+$ ]] || peak_input=$first_input
@@ -137,7 +200,8 @@ show_stats() {
         estimate=$(( peak_input - first_input - returned_output ))
         (( estimate > 0 )) || estimate=0
         (( delegate_count += 1, delegate_total += child_total,
-            delegate_cached += child_cached, saved_context += estimate ))
+            delegate_cached += child_cached, delegate_run += child_run,
+            delegate_run_cached += child_run_cached, saved_context += estimate ))
     done < <(find "$codex_home/sessions" -type f -name '*.jsonl' -print 2>/dev/null)
 
     printf 'Scriptorium stats\n'
@@ -145,8 +209,46 @@ show_stats() {
     printf 'main_tokens=%s cached=%s\n' "$main_total" "$main_cached"
     printf 'delegate_sessions=%s delegate_tokens=%s cached=%s\n' \
         "$delegate_count" "$delegate_total" "$delegate_cached"
+    printf 'thread_total_tokens=%s cached=%s\n' \
+        "$(( main_total + delegate_total ))" "$(( main_cached + delegate_cached ))"
+    if (( run_started > 0 )); then
+        printf 'last_run_tokens=%s cached=%s started_at=%s\n' \
+            "$(( main_run + delegate_run ))" "$(( main_run_cached + delegate_run_cached ))" \
+            "$run_started"
+    else
+        printf '%s\n' 'last_run_tokens=unavailable reason=no-project-marker'
+    fi
+    printf 'last_turn_tokens=%s cached=%s\n' "$main_last" "$main_last_cached"
     printf 'estimated_context_saved=%s\n' "$saved_context"
     printf '%s\n' 'note=estimate-only-not-billing-savings'
+}
+
+record_project_run() {
+    local codex_home=$1 run_started=$2 project_dir=$3 candidate meta cwd thread_id
+    local marker_dir=$project_dir/.scriptorium marker_file tmp
+    while IFS= read -r candidate; do
+        meta=$(awk 'index($0, "\"session_meta\"") { print; exit }' "$candidate")
+        [[ $meta == *'"parent_thread_id":null'* ]] || continue
+        cwd=$(sed -n 's/.*"cwd":"\([^"]*\)".*/\1/p' <<<"$meta")
+        [[ $cwd == "$project_dir" ]] || continue
+        thread_id=$(sed -n 's/.*"id":"\([0-9a-f-]*\)".*/\1/p' <<<"$meta")
+        valid_thread_id "$thread_id" || continue
+        if [[ -L $marker_dir ]]; then
+            printf 'scodex: refusing to write project stats through symlink: %s\n' \
+                "$marker_dir" >&2
+            return 0
+        fi
+        mkdir -p -- "$marker_dir"
+        marker_file=$marker_dir/stats
+        [[ ! -L $marker_file ]] || return 0
+        tmp=$(mktemp "$marker_dir/.stats.XXXXXX")
+        printf 'version=1\nthread_id=%s\nrun_started_at=%s\n' \
+            "$thread_id" "$run_started" >"$tmp"
+        chmod 600 "$tmp"
+        mv -- "$tmp" "$marker_file"
+        return 0
+    done < <(find "$codex_home/sessions" -type f -name 'rollout-*.jsonl' \
+        -printf '%T@ %p\n' 2>/dev/null | sort -nr | cut -d' ' -f2-)
 }
 
 reconcile_tool_catalog() {
@@ -246,4 +348,9 @@ if ! command -v codex >/dev/null 2>&1; then
     exit 127
 fi
 
-exec codex --profile "scriptorium-$profile" "$@"
+run_started=$(date +%s)
+project_dir=$PWD
+status=0
+codex --profile "scriptorium-$profile" "$@" || status=$?
+record_project_run "${CODEX_HOME:-$HOME/.codex}" "$run_started" "$project_dir"
+exit "$status"

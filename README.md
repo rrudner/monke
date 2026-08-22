@@ -77,6 +77,7 @@ scodex stats                   # Estimate context saved by delegation in the lat
 | Tmux settings | `~/.config/scriptorium/tmux.conf` | Scriptorium-managed |
 | Shell and tmux hooks | User configuration files | Marker-managed blocks |
 | Optional tool data | Matching XDG data/cache/state directories | Isolated |
+| Project token statistics | `.scriptorium/stats` in a launched project | Replaced after each completed `scodex` run |
 
 `scodex` loads a namespaced Codex profile, exposes only the selected tool environment, checks for
 updates when enabled, and then starts Codex. Your regular shell remains unchanged apart from the
@@ -87,6 +88,10 @@ thread's token counters through `scodex context`, then lowers the delegation thr
 context fills. It delegates only unopened file or log context that a concise worker result can
 replace; having a separate Spark usage limit alone is not treated as a token saving. Missing or
 incompatible telemetry falls back to the conservative low-pressure threshold.
+
+`scodex stats` sums token telemetry for the current project thread, including delegate sessions.
+It reports the complete thread, the last completed launcher run (including `resume`), and the last
+main-agent turn. The project marker contains only the thread ID and run start time.
 
 ## Safe by design
 
