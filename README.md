@@ -150,8 +150,9 @@ Playwright CLI requires Node.js 20 or newer, while Lighthouse requires Node.js 2
 compatible system Node.js is unavailable, Scriptorium keeps the selection but skips installation
 and leaves the affected tool out of the active environment. Selecting either browser tool also
 downloads Chromium without administrator access into Scriptorium's isolated cache. Both tools
-reuse that browser, and Scriptorium sets `CHROME_PATH` for Lighthouse automatically. Lighthouse
-can audit pages behind HTTP Basic Auth through an `Authorization` header passed with
+reuse that browser. Scriptorium sets `CHROME_PATH` for Lighthouse and
+`PLAYWRIGHT_MCP_EXECUTABLE_PATH` for Playwright CLI automatically. Lighthouse can audit pages behind
+HTTP Basic Auth through an `Authorization` header passed with
 `--extra-headers`; keep files containing credentials outside the repository.
 
 ## Verification

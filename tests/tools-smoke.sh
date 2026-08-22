@@ -104,6 +104,8 @@ grep -q '^export PLAYWRIGHT_BROWSERS_PATH=.*scriptorium/playwright' \
     "$local_home/.config/scriptorium/tools-env.sh"
 grep -q '^export CHROME_PATH=.*chromium-123/chrome-linux64/chrome' \
     "$local_home/.config/scriptorium/tools-env.sh"
+grep -q '^export PLAYWRIGHT_MCP_EXECUTABLE_PATH=.*chromium-123/chrome-linux64/chrome' \
+    "$local_home/.config/scriptorium/tools-env.sh"
 
 cat >"$shim_dir/lighthouse" <<'EOF'
 #!/usr/bin/env bash
@@ -121,6 +123,8 @@ grep -q '^"npm:lighthouse" = "1.2.3"$' \
 grep -q '^"npm:@playwright/cli" = "1.2.3"$' \
     "$local_home/.config/scriptorium/mise.toml"
 grep -q '^export CHROME_PATH=.*chromium-123/chrome-linux64/chrome' \
+    "$local_home/.config/scriptorium/tools-env.sh"
+grep -q '^export PLAYWRIGHT_MCP_EXECUTABLE_PATH=.*chromium-123/chrome-linux64/chrome' \
     "$local_home/.config/scriptorium/tools-env.sh"
 
 old_node_home=$test_root/old-node-home

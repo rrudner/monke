@@ -235,6 +235,7 @@ write_runtime_files() {
         printf 'export PLAYWRIGHT_BROWSERS_PATH=%q\n' "$cache_root/playwright" >>"$env_tmp"
         if [[ -n $browser_path ]]; then
             printf 'export CHROME_PATH=%q\n' "$browser_path" >>"$env_tmp"
+            printf 'export PLAYWRIGHT_MCP_EXECUTABLE_PATH=%q\n' "$browser_path" >>"$env_tmp"
         else
             printf 'Chromium was not found after installation; Lighthouse may be unavailable.\n' >&2
         fi
