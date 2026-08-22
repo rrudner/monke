@@ -132,6 +132,7 @@ system_command_path() {
 
 write_runtime_files() {
     local name command_name mise_id default tier label description provider version local_installed=0
+    local node_version node_major required_node browser_required=0 browser_path playwright_installer
     local state_tmp config_tmp env_tmp capabilities_tmp
     state_tmp=$(mktemp "$config_root/.tools-state.XXXXXX")
     config_tmp=$(mktemp "$config_root/.mise-config.XXXXXX")
@@ -157,6 +158,18 @@ write_runtime_files() {
                 printf 'Skipping %s: Node.js is required for npm tools.\n' "$name" >&2
                 continue
             fi
+            required_node=0
+            [[ $name == playwright-cli ]] && required_node=20
+            [[ $name == lighthouse ]] && required_node=22
+            if (( required_node )); then
+                node_version=$(node --version 2>/dev/null || true)
+                node_major=${node_version#v}; node_major=${node_major%%.*}
+                if [[ ! $node_major =~ ^[0-9]+$ ]] || (( node_major < required_node )); then
+                    printf 'Skipping %s: Node.js %s or newer is required.\n' \
+                        "$name" "$required_node" >&2
+                    continue
+                fi
+            fi
             bootstrap_mise || continue
             mise_env
             version=$($mise_bin latest "$mise_id" 2>/dev/null || true)
@@ -175,6 +188,27 @@ write_runtime_files() {
             >>"$capabilities_tmp"
     done < <(catalog_rows)
 
+    if awk -F '\t' '$1 == "playwright-cli" || $1 == "lighthouse" {found=1} END {exit !found}' \
+        "$state_tmp"; then
+        browser_required=1
+    fi
+    if (( browser_required )) \
+        && ! awk -F '\t' '$1 == "playwright-cli" {found=1} END {exit !found}' "$state_tmp" \
+        && ! system_command_path playwright-cli >/dev/null; then
+        bootstrap_mise || browser_required=0
+        if (( browser_required )); then
+            mise_env
+            version=$($mise_bin latest npm:@playwright/cli 2>/dev/null || true)
+            if [[ -n $version ]] && "$mise_bin" install "npm:@playwright/cli@$version"; then
+                printf '"npm:@playwright/cli" = "%s"\n' "$version" >>"$config_tmp"
+                local_installed=1
+            else
+                printf 'Could not install the Chromium downloader; browser tools may be unavailable.\n' >&2
+                browser_required=0
+            fi
+        fi
+    fi
+
     mv -- "$config_tmp" "$mise_config"
     if (( local_installed )); then
         mise_env
@@ -187,10 +221,25 @@ write_runtime_files() {
             "$HOME/.config/mise/config.toml:$HOME/.tool-versions" >>"$env_tmp"
         printf 'export PATH=%q:"$PATH"\n' "$data_root/mise/shims" >>"$env_tmp"
     fi
-    tools_csv=$(cut -f1 "$state_tmp" | paste -sd, -)
-    if awk -F '\t' '$1 == "playwright-cli" {found=1} END {exit !found}' "$state_tmp"; then
+    if (( browser_required )); then
+        export PLAYWRIGHT_BROWSERS_PATH=$cache_root/playwright
+        playwright_installer=$(system_command_path playwright-cli 2>/dev/null || true)
+        [[ -n $playwright_installer ]] \
+            || playwright_installer=$data_root/mise/shims/playwright-cli
+        if [[ -x $playwright_installer ]]; then
+            "$playwright_installer" install-browser \
+                || printf 'Could not install Chromium; browser tools may be unavailable.\n' >&2
+        fi
+        browser_path=$(find "$PLAYWRIGHT_BROWSERS_PATH" -type f -name chrome -perm -u+x \
+            2>/dev/null | sort -V | tail -n 1)
         printf 'export PLAYWRIGHT_BROWSERS_PATH=%q\n' "$cache_root/playwright" >>"$env_tmp"
+        if [[ -n $browser_path ]]; then
+            printf 'export CHROME_PATH=%q\n' "$browser_path" >>"$env_tmp"
+        else
+            printf 'Chromium was not found after installation; Lighthouse may be unavailable.\n' >&2
+        fi
     fi
+    tools_csv=$(cut -f1 "$state_tmp" | paste -sd, -)
     printf 'export SCRIPTORIUM_TOOLS=%q\n' "$tools_csv" >>"$env_tmp"
     mv -- "$state_tmp" "$state_file"
     mv -- "$env_tmp" "$env_file"

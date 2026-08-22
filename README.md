@@ -136,7 +136,8 @@ non-interactive launches keep the selection pending and show the command to run.
 | SOPS | Encrypt configuration files and secrets | No |
 | hyperfine | Benchmark commands | No |
 | just | Run project commands defined in a `justfile` | No |
-| Playwright CLI | Capture pages and automate browser workflows (requires Node.js) | No |
+| Playwright CLI | Capture pages and automate browser workflows (requires Node.js 20+) | No |
+| Lighthouse | Audit web performance, accessibility, SEO, and best practices (requires Node.js 22+) | No |
 <!-- END GENERATED OPTIONAL TOOLS -->
 
 The optional-tools module itself is disabled by default. Once enabled, existing system commands
@@ -145,8 +146,13 @@ checksum-verified, isolated mise runtime and are available only inside `scodex`.
 
 Installing missing tools requires `curl` or `wget` and `sha256sum`. Repository updates never
 upgrade tools; `scodex` checks for local tool updates at most weekly and only displays a notice.
-Playwright CLI also requires Node.js. If it is selected without Node.js available, Scriptorium
-keeps the selection but skips installation and leaves Playwright out of the active environment.
+Playwright CLI requires Node.js 20 or newer, while Lighthouse requires Node.js 22 or newer. If a
+compatible system Node.js is unavailable, Scriptorium keeps the selection but skips installation
+and leaves the affected tool out of the active environment. Selecting either browser tool also
+downloads Chromium without administrator access into Scriptorium's isolated cache. Both tools
+reuse that browser, and Scriptorium sets `CHROME_PATH` for Lighthouse automatically. Lighthouse
+can audit pages behind HTTP Basic Auth through an `Authorization` header passed with
+`--extra-headers`; keep files containing credentials outside the repository.
 
 ## Verification
 

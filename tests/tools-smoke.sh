@@ -66,12 +66,18 @@ EOF
 chmod +x "$shim_dir/just"
 cat >"$shim_dir/playwright-cli" <<'EOF'
 #!/usr/bin/env bash
+if [[ ${1:-} == install-browser ]]; then
+    browser_dir=$PLAYWRIGHT_BROWSERS_PATH/chromium-123/chrome-linux64
+    mkdir -p -- "$browser_dir"
+    printf '#!/usr/bin/env bash\n' >"$browser_dir/chrome"
+    chmod +x "$browser_dir/chrome"
+fi
 printf 'playwright shim\n'
 EOF
 chmod +x "$shim_dir/playwright-cli"
 cat >"$test_root/bin/node" <<'EOF'
 #!/usr/bin/env bash
-printf 'node test-version\n'
+printf 'v22.19.0\n'
 EOF
 chmod +x "$test_root/bin/node"
 PATH="$shim_dir:$test_root/bin:/usr/bin:/bin" HOME="$local_home" "$repo_dir/scripts/tools-manager.sh" configure --select just \
@@ -94,6 +100,41 @@ grep -q '^"npm:@playwright/cli" = "1.2.3"$' \
     "$local_home/.config/scriptorium/mise.toml"
 grep -q '^export PLAYWRIGHT_BROWSERS_PATH=.*scriptorium/playwright' \
     "$local_home/.config/scriptorium/tools-env.sh"
+grep -q '^export CHROME_PATH=.*chromium-123/chrome-linux64/chrome' \
+    "$local_home/.config/scriptorium/tools-env.sh"
+
+cat >"$shim_dir/lighthouse" <<'EOF'
+#!/usr/bin/env bash
+printf 'lighthouse shim\n'
+EOF
+chmod +x "$shim_dir/lighthouse"
+PATH="$shim_dir:$test_root/bin:/usr/bin:/bin" HOME="$local_home" \
+    "$repo_dir/scripts/tools-manager.sh" configure --select lighthouse \
+    >"$test_root/lighthouse-configure.log"
+grep -q $'^lighthouse\tlocal\t1.2.3\tlighthouse$' \
+    "$local_home/.config/scriptorium/tools.state"
+grep -q '^install npm:lighthouse@1.2.3$' "$MISE_TEST_LOG"
+grep -q '^"npm:lighthouse" = "1.2.3"$' \
+    "$local_home/.config/scriptorium/mise.toml"
+grep -q '^"npm:@playwright/cli" = "1.2.3"$' \
+    "$local_home/.config/scriptorium/mise.toml"
+grep -q '^export CHROME_PATH=.*chromium-123/chrome-linux64/chrome' \
+    "$local_home/.config/scriptorium/tools-env.sh"
+
+old_node_home=$test_root/old-node-home
+old_node_bin=$test_root/old-node-bin
+mkdir -p -- "$old_node_bin"
+cat >"$old_node_bin/node" <<'EOF'
+#!/usr/bin/env bash
+printf 'v20.19.0\n'
+EOF
+chmod +x "$old_node_bin/node"
+PATH="$old_node_bin:/usr/bin:/bin" HOME="$old_node_home" \
+    "$repo_dir/scripts/tools-manager.sh" configure --select lighthouse \
+    >"$test_root/old-node.log" 2>&1
+grep -qx lighthouse "$old_node_home/.config/scriptorium/tools.selected"
+[[ ! -s $old_node_home/.config/scriptorium/tools.state ]]
+grep -q 'Skipping lighthouse: Node.js 22 or newer is required.' "$test_root/old-node.log"
 
 # Users upgrading from a version without catalog-review state must be prompted for new defaults.
 legacy_home=$test_root/legacy-home
