@@ -6,7 +6,7 @@ test_root=$(mktemp -d /tmp/scriptorium-tools.XXXXXX)
 trap 'rm -rf -- "$test_root"' EXIT
 mkdir -p -- "$test_root/bin"
 
-for command_name in rg fd jq yq shellcheck ast-grep gh; do
+for command_name in rg fd jq yq shellcheck shfmt ast-grep gh; do
     cat >"$test_root/bin/$command_name" <<EOF
 #!/usr/bin/env bash
 printf '%s test-version\n' '$command_name'
@@ -16,15 +16,17 @@ done
 
 PATH="$test_root/bin:$PATH" HOME="$test_root/home" \
     "$repo_dir/scripts/tools-manager.sh" configure \
-    --select ripgrep,fd,jq,yq,shellcheck,ast-grep,gh >"$test_root/configure.log"
+    --select ripgrep,fd,jq,yq,shellcheck,shfmt,ast-grep,gh >"$test_root/configure.log"
 
 state=$test_root/home/.config/scriptorium/tools.state
-[[ $(wc -l <"$state") -eq 7 ]]
+[[ $(wc -l <"$state") -eq 8 ]]
 awk -F '\t' '$2 != "system" {exit 1}' "$state"
 grep -q '`ripgrep` (`rg`): system' \
     "$test_root/home/.config/scriptorium/capabilities.md"
 grep -q 'Fast recursive text search' "$test_root/home/.config/scriptorium/capabilities.md"
 grep -q '`ast-grep` (`ast-grep`): system' \
+    "$test_root/home/.config/scriptorium/capabilities.md"
+grep -q '`shfmt` (`shfmt`): system' \
     "$test_root/home/.config/scriptorium/capabilities.md"
 grep -qx ast-grep "$test_root/home/.config/scriptorium/tools.catalog-reviewed"
 [[ ! -e $test_root/home/.local/state/scriptorium/tools-reconfigure-required ]]
@@ -62,6 +64,16 @@ cat >"$shim_dir/just" <<'EOF'
 printf 'mise shim\n'
 EOF
 chmod +x "$shim_dir/just"
+cat >"$shim_dir/playwright-cli" <<'EOF'
+#!/usr/bin/env bash
+printf 'playwright shim\n'
+EOF
+chmod +x "$shim_dir/playwright-cli"
+cat >"$test_root/bin/node" <<'EOF'
+#!/usr/bin/env bash
+printf 'node test-version\n'
+EOF
+chmod +x "$test_root/bin/node"
 PATH="$shim_dir:$test_root/bin:/usr/bin:/bin" HOME="$local_home" "$repo_dir/scripts/tools-manager.sh" configure --select just \
     >"$test_root/local-configure.log"
 grep -q $'^just\tlocal\t1.2.3\tjust$' \
@@ -72,23 +84,36 @@ PATH="$test_root/bin:/usr/bin:/bin" HOME="$local_home" "$repo_dir/scripts/tools-
     >"$test_root/local-remove.log"
 grep -q '^uninstall just@1.2.3$' "$MISE_TEST_LOG"
 
+PATH="$shim_dir:$test_root/bin:/usr/bin:/bin" HOME="$local_home" \
+    "$repo_dir/scripts/tools-manager.sh" configure --select playwright-cli \
+    >"$test_root/playwright-configure.log"
+grep -q $'^playwright-cli\tlocal\t1.2.3\tplaywright-cli$' \
+    "$local_home/.config/scriptorium/tools.state"
+grep -q '^install npm:@playwright/cli@1.2.3$' "$MISE_TEST_LOG"
+grep -q '^"npm:@playwright/cli" = "1.2.3"$' \
+    "$local_home/.config/scriptorium/mise.toml"
+grep -q '^export PLAYWRIGHT_BROWSERS_PATH=.*scriptorium/playwright' \
+    "$local_home/.config/scriptorium/tools-env.sh"
+
 # Users upgrading from a version without catalog-review state must be prompted for new defaults.
 legacy_home=$test_root/legacy-home
 mkdir -p -- "$legacy_home/.config/scriptorium"
 printf '%s\n' ripgrep fd jq yq shellcheck >"$legacy_home/.config/scriptorium/tools.selected"
 PATH="$test_root/bin:$PATH" HOME="$legacy_home" \
     "$repo_dir/scripts/tools-manager.sh" reconcile
-grep -qx ast-grep \
-    "$legacy_home/.local/state/scriptorium/tools-reconfigure-required"
+[[ "$(cat "$legacy_home/.local/state/scriptorium/tools-reconfigure-required")" == \
+    $'ast-grep\nshfmt' ]]
 printf '\n' | PATH="$test_root/bin:$PATH" HOME="$legacy_home" \
-    script -qec "'$repo_dir/scripts/tools-manager.sh' configure --review ast-grep" /dev/null \
+    script -qec "'$repo_dir/scripts/tools-manager.sh' configure --review ast-grep,shfmt" /dev/null \
     >"$test_root/legacy-configure.log"
 [[ ! -e $legacy_home/.local/state/scriptorium/tools-reconfigure-required ]]
 grep -qx ast-grep "$legacy_home/.config/scriptorium/tools.catalog-reviewed"
-grep -q 'New tools: ast-grep' "$test_root/legacy-configure.log"
+grep -q 'New tools: ast-grep,shfmt' "$test_root/legacy-configure.log"
 grep -q 'ast-grep (new)' "$test_root/legacy-configure.log"
+grep -q 'shfmt (new)' "$test_root/legacy-configure.log"
 grep -qx ripgrep "$legacy_home/.config/scriptorium/tools.selected"
 ! grep -qx ast-grep "$legacy_home/.config/scriptorium/tools.selected"
+! grep -qx shfmt "$legacy_home/.config/scriptorium/tools.selected"
 
 # Contract tests for `catalog-diff`.
 catalog_before=$test_root/catalog-before.tsv

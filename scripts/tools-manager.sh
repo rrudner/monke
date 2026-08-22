@@ -153,12 +153,16 @@ write_runtime_files() {
             printf 'Skipping %s: it must already be installed.\n' "$name" >&2
             continue
         else
+            if [[ $mise_id == npm:* ]] && ! command -v node >/dev/null 2>&1; then
+                printf 'Skipping %s: Node.js is required for npm tools.\n' "$name" >&2
+                continue
+            fi
             bootstrap_mise || continue
             mise_env
             version=$($mise_bin latest "$mise_id" 2>/dev/null || true)
             [[ -n $version ]] || { printf 'Could not resolve %s.\n' "$name" >&2; continue; }
             if "$mise_bin" install "$mise_id@$version"; then
-                printf '%s = "%s"\n' "$mise_id" "$version" >>"$config_tmp"
+                printf '"%s" = "%s"\n' "$mise_id" "$version" >>"$config_tmp"
                 provider=local
                 local_installed=1
             else
@@ -184,6 +188,9 @@ write_runtime_files() {
         printf 'export PATH=%q:"$PATH"\n' "$data_root/mise/shims" >>"$env_tmp"
     fi
     tools_csv=$(cut -f1 "$state_tmp" | paste -sd, -)
+    if awk -F '\t' '$1 == "playwright-cli" {found=1} END {exit !found}' "$state_tmp"; then
+        printf 'export PLAYWRIGHT_BROWSERS_PATH=%q\n' "$cache_root/playwright" >>"$env_tmp"
+    fi
     printf 'export SCRIPTORIUM_TOOLS=%q\n' "$tools_csv" >>"$env_tmp"
     mv -- "$state_tmp" "$state_file"
     mv -- "$env_tmp" "$env_file"

@@ -130,11 +130,13 @@ non-interactive launches keep the selection pending and show the command to run.
 | jq | Query and transform JSON | Yes |
 | yq | Query and transform YAML | Yes |
 | ShellCheck | Find problems in shell scripts | Yes |
+| shfmt | Format shell scripts consistently with syntax-aware formatting | Yes |
 | ast-grep | Search and rewrite code with syntax-aware patterns | Yes |
 | GitHub CLI | Work with GitHub repositories and pull requests | No |
 | SOPS | Encrypt configuration files and secrets | No |
 | hyperfine | Benchmark commands | No |
 | just | Run project commands defined in a `justfile` | No |
+| Playwright CLI | Capture pages and automate browser workflows (requires Node.js) | No |
 <!-- END GENERATED OPTIONAL TOOLS -->
 
 The optional-tools module itself is disabled by default. Once enabled, existing system commands
@@ -143,6 +145,8 @@ checksum-verified, isolated mise runtime and are available only inside `scodex`.
 
 Installing missing tools requires `curl` or `wget` and `sha256sum`. Repository updates never
 upgrade tools; `scodex` checks for local tool updates at most weekly and only displays a notice.
+Playwright CLI also requires Node.js. If it is selected without Node.js available, Scriptorium
+keeps the selection but skips installation and leaves Playwright out of the active environment.
 
 ## Verification
 
