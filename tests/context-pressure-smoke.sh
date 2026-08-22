@@ -68,11 +68,13 @@ cat >"$child_file" <<EOF
 EOF
 output=$(cd "$test_root/project" && CODEX_HOME=$test_root/codex CODEX_THREAD_ID='' \
     "$repo_dir/bin/scodex" stats)
-grep -qx 'main_tokens=1500 cached=600' <<<"$output"
-grep -qx 'delegate_sessions=1 delegate_tokens=560 cached=120' <<<"$output"
-grep -qx 'thread_total_tokens=2060 cached=720' <<<"$output"
-grep -qx 'last_run_tokens=1060 cached=320 started_at=200' <<<"$output"
-grep -qx 'last_turn_tokens=500 cached=200' <<<"$output"
-grep -qx 'estimated_context_saved=250' <<<"$output"
+grep -qx '  Entire thread                    2 060             720' <<<"$output"
+grep -qx '  Last scodex run                  1 060             320' <<<"$output"
+grep -qx '  Delegates (1 sessions):             560 tokens' <<<"$output"
+if (cd "$test_root/project" && CODEX_HOME=$test_root/codex CODEX_THREAD_ID='' \
+    "$repo_dir/bin/scodex" stats --raw >/dev/null 2>&1); then
+    printf 'stats unexpectedly accepted an argument\n' >&2
+    exit 1
+fi
 
 printf 'Context pressure smoke tests passed.\n'

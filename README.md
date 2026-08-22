@@ -62,7 +62,7 @@ scodex tools status            # Show active tools and their providers
 scodex tools update            # Update locally managed tools
 scodex tools remove NAME       # Remove a tool from the selection
 scodex context                 # Show current main-context pressure for diagnostics
-scodex stats                   # Estimate context saved by delegation in the latest session
+scodex stats                   # Show readable token usage for the current project
 ```
 
 ## How it works

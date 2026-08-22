@@ -9,6 +9,7 @@
 
 .DS_Store
 .codex/
+.scriptorium/
 .config/
 .local/
 .tmux.conf*

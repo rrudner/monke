@@ -106,6 +106,16 @@ read_project_stats() {
     sed -n "s/^${key}=//p" "$stats_file" | tail -n 1
 }
 
+format_number() {
+    local value=$1 result= chunk
+    while (( ${#value} > 3 )); do
+        chunk=${value: -3}
+        value=${value:0:${#value}-3}
+        result=" $chunk$result"
+    done
+    printf '%s%s' "$value" "$result"
+}
+
 show_context_pressure() {
     local codex_home=${CODEX_HOME:-"$HOME/.codex"} thread_id=${CODEX_THREAD_ID:-}
     local session_file line input_tokens context_window percent pressure
@@ -170,14 +180,14 @@ show_stats() {
             -printf '%T@ %p\n' 2>/dev/null | sort -nr | cut -d' ' -f2-)
     fi
     if [[ ! -f ${session_file:-} ]] || ! valid_thread_id "$thread_id"; then
-        printf '%s\n' 'stats=unavailable reason=no-session'
+        printf 'Scriptorium usage\n\nNo session found for this project.\n'
         return 0
     fi
 
     usage=$(session_usage "$session_file" 0)
     read -r main_total main_cached main_last main_last_cached <<<"$usage"
     if [[ ! $main_total =~ ^[0-9]+$ || $main_total == 0 ]]; then
-        printf '%s\n' 'stats=unavailable reason=no-token-telemetry'
+        printf 'Scriptorium usage\n\nNo token telemetry is available for this project.\n'
         return 0
     fi
     run_started=$(read_project_stats run_started_at)
@@ -214,23 +224,27 @@ show_stats() {
             delegate_run_cached += child_run_cached, saved_context += estimate ))
     done < <(find "$codex_home/sessions" -type f -name '*.jsonl' -print 2>/dev/null)
 
-    printf 'Scriptorium stats\n'
-    printf 'session=%s\n' "$thread_id"
-    printf 'main_tokens=%s cached=%s\n' "$main_total" "$main_cached"
-    printf 'delegate_sessions=%s delegate_tokens=%s cached=%s\n' \
-        "$delegate_count" "$delegate_total" "$delegate_cached"
-    printf 'thread_total_tokens=%s cached=%s\n' \
-        "$(( main_total + delegate_total ))" "$(( main_cached + delegate_cached ))"
+    printf 'Scriptorium usage\n'
+    printf 'Thread: %s\n\n' "$thread_id"
+    printf '  %-22s %15s %15s\n' 'Scope' 'Total tokens' 'Cached input'
+    printf '  %-22s %15s %15s\n' 'Entire thread' \
+        "$(format_number "$(( main_total + delegate_total ))")" \
+        "$(format_number "$(( main_cached + delegate_cached ))")"
     if (( run_started > 0 )); then
-        printf 'last_run_tokens=%s cached=%s started_at=%s\n' \
-            "$(( main_run + delegate_run ))" "$(( main_run_cached + delegate_run_cached ))" \
-            "$run_started"
+        printf '  %-22s %15s %15s\n' 'Last scodex run' \
+            "$(format_number "$(( main_run + delegate_run ))")" \
+            "$(format_number "$(( main_run_cached + delegate_run_cached ))")"
     else
-        printf '%s\n' 'last_run_tokens=unavailable reason=no-project-marker'
+        printf '  %-22s %15s %15s\n' 'Last scodex run' 'not recorded' '-'
     fi
-    printf 'last_turn_tokens=%s cached=%s\n' "$main_last" "$main_last_cached"
-    printf 'estimated_context_saved=%s\n' "$saved_context"
-    printf '%s\n' 'note=estimate-only-not-billing-savings'
+    printf '  %-22s %15s %15s\n' 'Last main-agent turn' \
+        "$(format_number "$main_last")" "$(format_number "$main_last_cached")"
+    printf '\nBreakdown\n'
+    printf '  Main agent:             %15s tokens\n' "$(format_number "$main_total")"
+    printf '  Delegates (%s sessions): %15s tokens\n' "$delegate_count" \
+        "$(format_number "$delegate_total")"
+    printf '  Context saved (estimate): %13s tokens\n' "$(format_number "$saved_context")"
+    printf '\nContext saved is an estimate, not a billing reduction.\n'
 }
 
 record_project_run() {
@@ -283,6 +297,10 @@ case ${1:-} in
         exit 0
         ;;
     stats)
+        if (( $# != 1 )); then
+            printf 'scodex: stats does not accept arguments.\n' >&2
+            exit 2
+        fi
         show_stats
         exit 0
         ;;
