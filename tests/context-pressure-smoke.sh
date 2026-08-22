@@ -52,7 +52,7 @@ thread_id=$thread_id
 run_started_at=200
 EOF
 cat >"$session_file" <<EOF
-{"type":"session_meta","payload":{"id":"$thread_id","parent_thread_id":null,"cwd":"$test_root/project","source":"cli"}}
+{"type":"session_meta","payload":{"id":"$thread_id","cwd":"$test_root/project","source":"cli"}}
 {"type":"event_msg","payload":{"type":"task_started","started_at":100}}
 {"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":900,"cached_input_tokens":400,"output_tokens":100,"total_tokens":1000},"last_token_usage":{"input_tokens":500,"cached_input_tokens":300,"output_tokens":50,"total_tokens":550},"model_context_window":200000}}}
 {"type":"event_msg","payload":{"type":"task_started","started_at":200}}

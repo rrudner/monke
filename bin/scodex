@@ -48,6 +48,15 @@ find_session_file() {
         -print -quit 2>/dev/null
 }
 
+is_root_session_meta() {
+    local meta=$1
+    if [[ $meta == *'"parent_thread_id":'* ]]; then
+        [[ $meta == *'"parent_thread_id":null'* ]]
+    else
+        [[ $meta != *'"subagent"'* ]]
+    fi
+}
+
 session_usage() {
     local session_file=$1 since=${2:-0}
     awk -v since="$since" '
@@ -135,7 +144,7 @@ show_context_pressure() {
 
 show_stats() {
     local codex_home=${CODEX_HOME:-"$HOME/.codex"} thread_id=${CODEX_THREAD_ID:-}
-    local session_file candidate meta child_file child_line usage run_usage
+    local session_file candidate meta cwd child_file child_line usage run_usage
     local main_total main_cached main_last main_last_cached child_total child_cached
     local run_started main_run=0 main_run_cached=0 child_run child_run_cached
     local first_input peak_input returned_output estimate
@@ -151,7 +160,8 @@ show_stats() {
         session_file=
         while IFS= read -r candidate; do
             meta=$(awk 'index($0, "\"session_meta\"") { print; exit }' "$candidate")
-            if [[ $meta == *'"parent_thread_id":null'* ]]; then
+            cwd=$(sed -n 's/.*"cwd":"\([^"]*\)".*/\1/p' <<<"$meta")
+            if is_root_session_meta "$meta" && [[ $cwd == "$PWD" ]]; then
                 session_file=$candidate
                 thread_id=$(sed -n 's/.*"id":"\([0-9a-f-]*\)".*/\1/p' <<<"$meta")
                 break
@@ -228,7 +238,7 @@ record_project_run() {
     local marker_dir=$project_dir/.scriptorium marker_file tmp
     while IFS= read -r candidate; do
         meta=$(awk 'index($0, "\"session_meta\"") { print; exit }' "$candidate")
-        [[ $meta == *'"parent_thread_id":null'* ]] || continue
+        is_root_session_meta "$meta" || continue
         cwd=$(sed -n 's/.*"cwd":"\([^"]*\)".*/\1/p' <<<"$meta")
         [[ $cwd == "$project_dir" ]] || continue
         thread_id=$(sed -n 's/.*"id":"\([0-9a-f-]*\)".*/\1/p' <<<"$meta")
