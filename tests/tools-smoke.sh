@@ -24,6 +24,8 @@ awk -F '\t' '$2 != "system" {exit 1}' "$state"
 grep -q '`ripgrep` (`rg`): system' \
     "$test_root/home/.config/scriptorium/capabilities.md"
 grep -q 'Fast recursive text search' "$test_root/home/.config/scriptorium/capabilities.md"
+grep -q 'Use first for targeted text, symbol, and file-content discovery.' \
+    "$test_root/home/.config/scriptorium/capabilities.md"
 grep -q '`ast-grep` (`ast-grep`): system' \
     "$test_root/home/.config/scriptorium/capabilities.md"
 grep -q '`shfmt` (`shfmt`): system' \

@@ -21,7 +21,7 @@ mise_arm64_sha=f9bd051912beb8861bf248289bfb2d8c281ff00fcdf1e44d730b8ea7e859e9a4
 
 mkdir -p -- "$config_root" "$data_root/runtime" "$cache_root" "$state_root"
 
-catalog_rows() { awk -F '\t' '!/^#/ && NF >= 7' "$catalog"; }
+catalog_rows() { awk -F '\t' '!/^#/ && NF >= 8' "$catalog"; }
 catalog_names() { catalog_rows | cut -f1 | sort -u; }
 catalog_names_from() { awk -F '\t' '!/^#/ && NF >= 7 {print $1}' "$1" | sort -u; }
 selected() { grep -Fqx -- "$1" "$selected_file" 2>/dev/null; }
@@ -131,7 +131,7 @@ system_command_path() {
 }
 
 write_runtime_files() {
-    local name command_name mise_id default tier label description provider version local_installed=0
+    local name command_name mise_id default tier label description when_to_use provider version local_installed=0
     local node_version node_major required_node browser_required=0 browser_path playwright_installer
     local state_tmp config_tmp env_tmp capabilities_tmp
     state_tmp=$(mktemp "$config_root/.tools-state.XXXXXX")
@@ -145,7 +145,7 @@ write_runtime_files() {
     printf '%s\n' '""' >>"$env_tmp"
     printf '%s\n' '### Available Scriptorium tools' >"$capabilities_tmp"
 
-    while IFS=$'\t' read -r name command_name mise_id default tier label description; do
+    while IFS=$'\t' read -r name command_name mise_id default tier label description when_to_use; do
         selected "$name" || continue
         if system_command_path "$command_name" >/dev/null; then
             provider=system
@@ -184,7 +184,7 @@ write_runtime_files() {
             fi
         fi
         printf '%s\t%s\t%s\t%s\n' "$name" "$provider" "$version" "$command_name" >>"$state_tmp"
-        printf -- '- `%s` (`%s`): %s, %s — %s\n' "$name" "$command_name" "$provider" "$version" "$description" \
+        printf -- '- `%s` (`%s`): %s, %s. %s %s\n' "$name" "$command_name" "$provider" "$version" "$description" "$when_to_use" \
             >>"$capabilities_tmp"
     done < <(catalog_rows)
 
@@ -248,12 +248,12 @@ write_runtime_files() {
 }
 
 configure_text() {
-    local explicit=${1:-} name command_name mise_id default tier label description answer chosen_tmp
+    local explicit=${1:-} name command_name mise_id default tier label description when_to_use answer chosen_tmp
     chosen_tmp=$(mktemp "$config_root/.tools-selected.XXXXXX")
     if [[ -n $explicit ]]; then
         tr ',' '\n' <<<"$explicit" | sed '/^$/d' >"$chosen_tmp"
     else
-        while IFS=$'\t' read -r name command_name mise_id default tier label description; do
+        while IFS=$'\t' read -r name command_name mise_id default tier label description when_to_use; do
             if [[ $tier == available-only ]] && ! command -v "$command_name" >/dev/null 2>&1; then
                 printf '%-12s unavailable (not installed): %s\n' "$label" "$description"
                 continue
@@ -277,8 +277,8 @@ configure_text() {
 configure_tui() {
     local review=${1:-0} new_names=${2:-}
     local -a names labels descriptions commands defaults tiers marks enabled new_flags
-    local name command_name mise_id default tier label description index=0 key count line is_new
-    while IFS=$'\t' read -r name command_name mise_id default tier label description; do
+    local name command_name mise_id default tier label description when_to_use index=0 key count line is_new
+    while IFS=$'\t' read -r name command_name mise_id default tier label description when_to_use; do
         names+=("$name"); commands+=("$command_name"); defaults+=("$default"); tiers+=("$tier")
         labels+=("$label"); descriptions+=("$description")
         is_new=0

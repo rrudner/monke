@@ -42,7 +42,7 @@ git clone "$work_base/origin.git" "$work_base/upstream" > /dev/null
 git -C "$work_base/upstream" config user.email test@example.invalid
 git -C "$work_base/upstream" config user.name Test
 printf 'future\n' >>"$work_base/upstream/file.txt"
-printf 'future-tool\tfuture-tool\t-\t0\tadvanced\tFuture tool\tUpdate migration test\n' \
+printf 'future-tool\tfuture-tool\t-\t0\tadvanced\tFuture tool\tUpdate migration test\tUse for update migration tests.\n' \
     >>"$work_base/upstream/tools/catalog.tsv"
 git -C "$work_base/upstream" add file.txt
 git -C "$work_base/upstream" add tools/catalog.tsv

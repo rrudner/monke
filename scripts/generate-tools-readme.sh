@@ -8,10 +8,10 @@ begin='<!-- BEGIN GENERATED OPTIONAL TOOLS -->'
 end='<!-- END GENERATED OPTIONAL TOOLS -->'
 
 table=$(awk -F '\t' '
-    BEGIN { print "| Tool | Purpose | Selected by default |"; print "|---|---|:---:|" }
-    !/^#/ && NF >= 7 {
+    BEGIN { print "| Tool | Purpose | When to use | Selected by default |"; print "|---|---|---|:---:|" }
+    !/^#/ && NF >= 8 {
         tool = ($1 == $2 ? $6 : $6 " (`" $2 "`)")
-        printf "| %s | %s | %s |\n", tool, $7, ($4 == 1 ? "Yes" : "No")
+        printf "| %s | %s | %s | %s |\n", tool, $7, $8, ($4 == 1 ? "Yes" : "No")
     }
 ' "$catalog")
 

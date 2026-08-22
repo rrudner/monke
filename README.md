@@ -123,21 +123,21 @@ non-interactive launches keep the selection pending and show the command to run.
 ## Optional tools
 
 <!-- BEGIN GENERATED OPTIONAL TOOLS -->
-| Tool | Purpose | Selected by default |
-|---|---|:---:|
-| ripgrep (`rg`) | Fast recursive text search | Yes |
-| fd | Fast and convenient file search | Yes |
-| jq | Query and transform JSON | Yes |
-| yq | Query and transform YAML | Yes |
-| ShellCheck | Find problems in shell scripts | Yes |
-| shfmt | Format shell scripts consistently with syntax-aware formatting | Yes |
-| ast-grep | Search and rewrite code with syntax-aware patterns | Yes |
-| GitHub CLI | Work with GitHub repositories and pull requests | No |
-| SOPS | Encrypt configuration files and secrets | No |
-| hyperfine | Benchmark commands | No |
-| just | Run project commands defined in a `justfile` | No |
-| Playwright CLI | Capture pages and automate browser workflows (requires Node.js 20+) | No |
-| Lighthouse | Audit web performance, accessibility, SEO, and best practices (requires Node.js 22+) | No |
+| Tool | Purpose | When to use | Selected by default |
+|---|---|---|:---:|
+| ripgrep (`rg`) | Fast recursive text search | Use first for targeted text, symbol, and file-content discovery. | Yes |
+| fd | Fast and convenient file search | Use to locate files by name, extension, type, or directory. | Yes |
+| jq | Query and transform JSON | Use for precise JSON inspection, filtering, validation, and transformation. | Yes |
+| yq | Query and transform YAML | Use for precise YAML inspection, filtering, validation, and transformation. | Yes |
+| ShellCheck | Find problems in shell scripts | Use after shell changes to detect correctness and portability issues. | Yes |
+| shfmt | Format shell scripts consistently with syntax-aware formatting | Use to check or apply consistent shell formatting after edits. | Yes |
+| ast-grep | Search and rewrite code with syntax-aware patterns | Use when syntax-aware matching or a safe structural rewrite is better than text search. | Yes |
+| GitHub CLI | Work with GitHub repositories and pull requests | Use for GitHub issues, pull requests, checks, releases, and repository metadata. | No |
+| SOPS | Encrypt configuration files and secrets | Use for encrypted configuration and secret files without exposing plaintext. | No |
+| hyperfine | Benchmark commands | Use to compare command performance with repeatable measurements. | No |
+| just | Run project commands defined in a `justfile` | Use existing project recipes instead of reconstructing their commands manually. | No |
+| Playwright CLI | Capture pages and automate browser workflows (requires Node.js 20+) | Use for browser interaction, UI flows, screenshots, and rendered-page checks. | No |
+| Lighthouse | Audit web performance, accessibility, SEO, and best practices (requires Node.js 22+) | Use for evidence-based audits of a rendered web page. | No |
 <!-- END GENERATED OPTIONAL TOOLS -->
 
 The optional-tools module itself is disabled by default. Once enabled, existing system commands
