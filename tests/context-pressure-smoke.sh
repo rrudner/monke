@@ -57,6 +57,8 @@ cat >"$session_file" <<EOF
 {"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":900,"cached_input_tokens":400,"output_tokens":100,"total_tokens":1000},"last_token_usage":{"input_tokens":500,"cached_input_tokens":300,"output_tokens":50,"total_tokens":550},"model_context_window":200000}}}
 {"type":"event_msg","payload":{"type":"task_started","started_at":200}}
 {"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":450,"cached_input_tokens":200,"output_tokens":50,"total_tokens":500},"last_token_usage":{"input_tokens":450,"cached_input_tokens":200,"output_tokens":50,"total_tokens":500},"model_context_window":200000}}}
+{"type":"event_msg","payload":{"type":"task_started","started_at":300}}
+{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":700,"cached_input_tokens":300,"output_tokens":100,"total_tokens":800},"last_token_usage":{"input_tokens":250,"cached_input_tokens":100,"output_tokens":50,"total_tokens":300},"model_context_window":200000}}}
 EOF
 child_id=01a02923-c4e7-7e33-9954-efaf9b17497c
 child_file=$session_dir/rollout-test-$child_id.jsonl
@@ -68,8 +70,9 @@ cat >"$child_file" <<EOF
 EOF
 output=$(cd "$test_root/project" && CODEX_HOME=$test_root/codex CODEX_THREAD_ID='' \
     "$repo_dir/bin/scodex" stats)
-grep -qx '  Entire thread                    2 060             720' <<<"$output"
-grep -qx '  Last scodex run                  1 060             320' <<<"$output"
+grep -qx '  Entire thread                    2 360             820' <<<"$output"
+grep -qx '  Last scodex run                  1 360             420' <<<"$output"
+grep -qx '  Last main-agent turn               300             100' <<<"$output"
 grep -qx '  Delegates (1 sessions):             560 tokens' <<<"$output"
 if (cd "$test_root/project" && CODEX_HOME=$test_root/codex CODEX_THREAD_ID='' \
     "$repo_dir/bin/scodex" stats --raw >/dev/null 2>&1); then

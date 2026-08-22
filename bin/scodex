@@ -85,19 +85,26 @@ session_usage() {
             sub("[^0-9].*$", "", copy)
             return copy ~ /^[0-9]+$/ ? copy + 0 : 0
         }
-        function flush() {
-            if (!have_usage) return
-            last_total = current_total
-            last_cached = current_cached
+        function finish_task(delta_total, delta_cached) {
+            if (!have_task_usage) return
+
+            delta_total = current_total >= previous_task_total \
+                ? current_total - previous_task_total : current_total
+            delta_cached = current_cached >= previous_task_cached \
+                ? current_cached - previous_task_cached : current_cached
             if (include_task) {
-                total += current_total
-                cached += current_cached
+                total += delta_total
+                cached += delta_cached
             }
-            have_usage = 0
+            last_total = delta_total
+            last_cached = delta_cached
+            previous_task_total = current_total
+            previous_task_cached = current_cached
+            have_task_usage = 0
         }
         BEGIN { include_task = since == 0 }
         index($0, "\"task_started\"") {
-            flush()
+            finish_task()
             started = number_after($0, "started_at")
             include_task = since == 0 || (started > 0 && started >= since)
             saw_task = 1
@@ -110,10 +117,10 @@ session_usage() {
             current_total = number_after(usage, "total_tokens")
             current_cached = number_after(usage, "cached_input_tokens")
             if (!saw_task) include_task = since == 0
-            have_usage = 1
+            have_task_usage = 1
         }
         END {
-            flush()
+            finish_task()
             printf "%d %d %d %d\n", total, cached, last_total, last_cached
         }
     ' "$session_file"
