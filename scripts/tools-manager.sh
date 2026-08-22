@@ -126,7 +126,7 @@ command_version() {
 system_command_path() {
     local command_name=$1 command_path
     command_path=$(command -v "$command_name" 2>/dev/null || true)
-    [[ -n $command_path && $command_path != "$data_root/mise/shims/"* ]] || return 1
+    [[ -n $command_path && $command_path != "$data_root/mise/"* ]] || return 1
     printf '%s\n' "$command_path"
 }
 

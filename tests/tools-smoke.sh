@@ -61,6 +61,19 @@ chmod +x "$runtime_dir/mise"
 export MISE_TEST_LOG=$test_root/mise.log
 shim_dir=$local_home/.local/share/scriptorium/mise/shims
 mkdir -p -- "$shim_dir"
+install_bin=$local_home/.local/share/scriptorium/mise/installs/ripgrep/1.2.3/bin
+mkdir -p -- "$install_bin"
+cat >"$install_bin/rg" <<'EOF'
+#!/usr/bin/env bash
+printf 'managed rg\n'
+EOF
+chmod +x "$install_bin/rg"
+PATH="$install_bin:$test_root/bin:/usr/bin:/bin" HOME="$local_home" \
+    "$repo_dir/scripts/tools-manager.sh" configure --select ripgrep \
+    >"$test_root/local-ripgrep-configure.log"
+grep -q $'^ripgrep\tlocal\t1.2.3\trg$' \
+    "$local_home/.config/scriptorium/tools.state"
+grep -q 'export PATH=.*mise/shims' "$local_home/.config/scriptorium/tools-env.sh"
 cat >"$shim_dir/just" <<'EOF'
 #!/usr/bin/env bash
 printf 'mise shim\n'
