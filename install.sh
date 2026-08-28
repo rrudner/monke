@@ -15,6 +15,8 @@ tools_choice=
 tools_selection=
 shell_choice=
 shell_rc=
+developer_instructions_choice=
+developer_instructions_file_choice=
 
 usage() {
     cat <<'EOF'
@@ -27,6 +29,8 @@ Usage: ./install.sh [options]
   --tools NAME[,NAME...]                       Non-interactive tool selection
   --shell bash|zsh|fish
   --shell-rc PATH                              Override Bash/Zsh rc path
+  --developer-instructions-file PATH           Load session instructions from PATH
+  --without-developer-instructions              Disable session instructions
   --apply-saved                                Reapply saved choices
   --no-package-install                         Accepted legacy no-op
   -h, --help
@@ -67,6 +71,23 @@ while (($#)); do
             shift; [[ $# -gt 0 ]] || { printf 'Missing shell rc path.\n' >&2; exit 2; }
             shell_rc=$1
             ;;
+        --developer-instructions-file)
+            shift; [[ $# -gt 0 ]] || { printf 'Missing path after --developer-instructions-file.\n' >&2; exit 2; }
+            case $1 in
+                /*|[~]/*) ;;
+                *)
+                    printf 'Developer instructions path must be absolute or start with ~/.\n' >&2
+                    exit 2
+                    ;;
+            esac
+            developer_instructions_choice=1
+            developer_instructions_file_choice=$1
+            mode=flags
+            ;;
+        --without-developer-instructions)
+            developer_instructions_choice=0
+            mode=flags
+            ;;
         --apply-saved) mode=saved ;;
         --no-package-install) : ;;
         -h|--help) usage; exit 0 ;;
@@ -83,8 +104,12 @@ saved_tools=$(read_pref "$preferences_file" tools "$saved_tools_default")
 login_shell=${SHELL:-bash}
 saved_shell=$(read_pref "$preferences_file" shell "${login_shell##*/}")
 saved_rc=$(read_pref "$preferences_file" shell_rc '')
+saved_developer_instructions=$(read_pref "$preferences_file" developer_instructions 1)
+saved_developer_instructions_file=$(read_pref "$preferences_file" developer_instructions_file \
+    "$repo_dir/.agents/skills/monke-language/SKILL.md")
 shell_choice=${shell_choice:-$saved_shell}
 shell_rc=${shell_rc:-$saved_rc}
+developer_instructions_file_choice=${developer_instructions_file_choice:-$saved_developer_instructions_file}
 
 case $shell_choice in bash|zsh|fish) ;; *) shell_choice=bash ;; esac
 
@@ -97,12 +122,15 @@ if [[ $mode == interactive && -t 0 ]]; then
     fi
     update_choice=$(prompt_boolean 'Check for Scriptorium updates when scodex starts?' "$saved_update")
     tools_choice=$(prompt_boolean 'Configure optional scodex tools?' "$saved_tools")
+    developer_instructions_choice=$saved_developer_instructions
 elif [[ $mode == saved ]]; then
     tmux_choice=$saved_tmux; update_choice=$saved_update; tools_choice=$saved_tools
+    developer_instructions_choice=$saved_developer_instructions
 else
     tmux_choice=${tmux_choice:-$saved_tmux}
     update_choice=${update_choice:-$saved_update}
     tools_choice=${tools_choice:-$saved_tools}
+    developer_instructions_choice=${developer_instructions_choice:-$saved_developer_instructions}
 fi
 
 if [[ $tmux_choice == 1 ]] && ! command -v tmux >/dev/null 2>&1; then
@@ -143,6 +171,8 @@ trap rollback_install EXIT
     printf 'tools=%s\n' "$tools_choice"
     printf 'shell=%s\n' "$shell_choice"
     printf 'shell_rc=%s\n' "$shell_rc"
+    printf 'developer_instructions=%s\n' "$developer_instructions_choice"
+    printf 'developer_instructions_file=%s\n' "$developer_instructions_file_choice"
 } >"$preferences_tmp"
 chmod 600 -- "$preferences_tmp"
 mv -- "$preferences_tmp" "$preferences_file"

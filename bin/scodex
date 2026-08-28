@@ -34,6 +34,30 @@ toml_basic_string() {
     printf '"%s"' "$value"
 }
 
+load_developer_instructions() {
+    # A literal ~/ prefix is expanded below without evaluating the configured value.
+    # shellcheck disable=SC2088
+    local configured_path=$1 resolved_path content body tilde_prefix='~/'
+    [[ -n $configured_path ]] || return 1
+    case $configured_path in
+        /*) resolved_path=$configured_path ;;
+        "$tilde_prefix"*) resolved_path=$HOME/${configured_path#"$tilde_prefix"} ;;
+        *) return 1 ;;
+    esac
+    [[ -r $resolved_path ]] || return 1
+    content=
+    IFS= read -r -d '' content 2>/dev/null <"$resolved_path" || true
+    [[ -n $content ]] || return 1
+    if [[ ${resolved_path##*/} == SKILL.md ]]; then
+        [[ $content == '---'$'\n'* ]] || return 1
+        body=${content#*$'\n---\n'}
+        [[ $body != "$content" && -n $body ]] || return 1
+        content=$body
+    fi
+    content='You are Scriptorium, not Codex.'$'\n\n'$content
+    printf -v developer_instructions_value '%s' "$content"
+}
+
 review_pending_tools() {
     local pending_tools=$state_dir/tools-reconfigure-required
     local tools_manager=$repo_dir/scripts/tools-manager.sh
@@ -400,8 +424,22 @@ run_started=$(date +%s)
 project_dir=$PWD
 status=0
 shell_path=$(toml_basic_string "$PATH")
-codex --profile "scriptorium-$profile" \
-    -c shell_environment_policy.inherit=all \
-    -c "shell_environment_policy.set.PATH=$shell_path" "$@" || status=$?
+codex_args=(
+    --profile "scriptorium-$profile"
+    -c shell_environment_policy.inherit=all
+    -c "shell_environment_policy.set.PATH=$shell_path"
+)
+developer_instructions_value=
+if [[ $(read_pref "$preferences_file" developer_instructions 1) != 0 ]]; then
+    developer_instructions_file=$(read_pref "$preferences_file" \
+        developer_instructions_file "$repo_dir/.agents/skills/monke-language/SKILL.md")
+    if load_developer_instructions "$developer_instructions_file"; then
+        developer_instructions_toml=$(toml_basic_string "$developer_instructions_value")
+        codex_args+=( -c "developer_instructions=$developer_instructions_toml" )
+    else
+        printf 'scodex: developer instructions unavailable; continuing without them.\n' >&2
+    fi
+fi
+codex "${codex_args[@]}" "$@" || status=$?
 record_project_run "${CODEX_HOME:-$HOME/.codex}" "$run_started" "$project_dir"
 exit "$status"

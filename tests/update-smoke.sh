@@ -28,7 +28,7 @@ bash -n "$repo_dir/install.sh" "$repo_dir/update.sh" "$repo_dir"/scripts/*.sh \
 git_work=$work_base/source
 mkdir -p -- "$git_work"
 cp -a -- "$repo_dir/install.sh" "$repo_dir/update.sh" "$repo_dir/AGENTS.md" "$repo_dir/README.md" \
-    "$repo_dir/bin" "$repo_dir/codex" "$repo_dir/scripts" "$repo_dir/tmux" \
+    "$repo_dir/.agents" "$repo_dir/bin" "$repo_dir/codex" "$repo_dir/scripts" "$repo_dir/tmux" \
     "$repo_dir/tools" "$repo_dir/tests" "$git_work"/
 git -C "$git_work" init -q -b main
 git -C "$git_work" config user.email test@example.invalid
@@ -91,6 +91,9 @@ grep -q '^scodex: downloading repository update$' "$test_root/update-output.log"
 grep -q '^scodex: applying the updated configuration$' "$test_root/update-output.log"
 grep -q '^scodex: finalizing update$' "$test_root/update-output.log"
 grep -qx 'tools=1' "$HOME/.config/scriptorium/preferences"
+grep -qx 'developer_instructions=1' "$HOME/.config/scriptorium/preferences"
+grep -Fxq "developer_instructions_file=$work_base/local/.agents/skills/monke-language/SKILL.md" \
+    "$HOME/.config/scriptorium/preferences"
 grep -qx 'ripgrep' "$HOME/.config/scriptorium/tools.selected"
 grep -qx 'future-tool' \
     "$HOME/.local/state/scriptorium/tools-reconfigure-required"

@@ -12,6 +12,7 @@ bash -n "$repo_dir/install.sh" "$repo_dir/uninstall.sh" "$repo_dir/update.sh" "$
     "$repo_dir"/tmux/scripts/*.sh "$repo_dir"/tests/*.sh
 
 bash "$repo_dir/tests/managed-block-smoke.sh"
+bash "$repo_dir/tests/developer-instructions-smoke.sh"
 
 cat >"$test_root/home/.codex/config.toml" <<'EOF'
 model = "user-model"
@@ -71,6 +72,9 @@ if [[ $reader_default != default ]]; then
 fi
 grep -qx 'update_check=1' "$test_root/home/.config/scriptorium/preferences"
 grep -qx 'tools=0' "$test_root/home/.config/scriptorium/preferences"
+grep -qx 'developer_instructions=1' "$test_root/home/.config/scriptorium/preferences"
+grep -Fxq "developer_instructions_file=$repo_dir/.agents/skills/monke-language/SKILL.md" \
+    "$test_root/home/.config/scriptorium/preferences"
 [[ -f "$test_root/home/.config/scriptorium/tools.catalog-reviewed" ]]
 
 printf '\n# Force wrapper replacement.\n' >>"$test_root/home/.local/bin/scodex"
@@ -88,10 +92,24 @@ CODEX_HOME="$test_root/home/.codex" \
     "$repo_dir/install.sh" --apply-saved >"$test_root/reapply.log"
 [[ $(find "$test_root/home" -name '*.backup-*' | wc -l) -eq $backup_count ]]
 
+custom_instructions=$test_root/home/custom-SKILL.md
+printf '%s\n' 'Custom instructions.' >"$custom_instructions"
+PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$test_root/home" \
+CODEX_HOME="$test_root/home/.codex" \
+    "$repo_dir/install.sh" --developer-instructions-file "$custom_instructions" \
+    >"$test_root/developer-override.log"
+PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$test_root/home" \
+CODEX_HOME="$test_root/home/.codex" \
+    "$repo_dir/install.sh" --apply-saved >"$test_root/developer-override-reapply.log"
+grep -Fxq "developer_instructions_file=$custom_instructions" \
+    "$test_root/home/.config/scriptorium/preferences"
+
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$test_root/home" \
 CODEX_HOME="$test_root/home/.codex" \
     "$repo_dir/install.sh" --without-tmux --without-update-check --without-tools \
+    --without-developer-instructions \
     >"$test_root/disable.log"
+grep -qx 'developer_instructions=0' "$test_root/home/.config/scriptorium/preferences"
 ! grep -q '^source-file .*scriptorium' "$test_root/home/.tmux.conf"
 grep -q '^set -g status off$' "$test_root/home/.tmux.conf"
 ! grep -q 'tmux new-session -A -s main' "$test_root/home/.bashrc"

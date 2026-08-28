@@ -56,6 +56,8 @@ scodex --no-update             # Skip one repository update check
 
 scodex update                  # Install the available repository update
 scodex configure               # Change saved integration choices
+scodex configure --developer-instructions-file ~/my-skill/SKILL.md
+scodex configure --without-developer-instructions
 scodex uninstall --keep-repo   # Remove integration and keep this repository
 scodex tools configure         # Select optional tools in a terminal UI
 scodex tools status            # Show active tools and their providers
@@ -74,6 +76,7 @@ scodex stats                   # Show readable token usage for the current proje
 | Launcher helper | `~/.local/bin/scriptorium-preferences.sh` | Scriptorium-managed |
 | Codex profiles | `~/.codex/scriptorium-*.config.toml` | Scriptorium-managed |
 | Codex instructions | `~/.codex/AGENTS.md` | Marker-managed block |
+| Session instructions | `.agents/skills/monke-language/SKILL.md` | Git-managed |
 | Tmux settings | `~/.config/scriptorium/tmux.conf` | Scriptorium-managed |
 | Shell and tmux hooks | User configuration files | Marker-managed blocks |
 | Optional tool data | Matching XDG data/cache/state directories | Isolated |
@@ -82,6 +85,13 @@ scodex stats                   # Show readable token usage for the current proje
 `scodex` loads a namespaced Codex profile, exposes only the selected tool environment, checks for
 updates when enabled, and then starts Codex. Your regular shell remains unchanged apart from the
 small launcher and optional tmux blocks selected during installation.
+
+Each new `scodex` session automatically loads the repository's Monke instructions. The launcher
+removes `SKILL.md` frontmatter, passes the body through Codex's `developer_instructions` setting,
+identifies the session as Scriptorium, and reads the file only once for that session. Use
+`scodex configure --developer-instructions-file /absolute/path/to/another/SKILL.md` to select any
+other instruction file, or `scodex configure --without-developer-instructions` to disable this
+behavior. A missing or invalid file produces one warning and does not prevent Codex from starting.
 
 Scriptorium keeps small, single-goal work local. Before broad exploration it reads only the current
 thread's token counters through `scodex context`, then lowers the delegation threshold as the main
