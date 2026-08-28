@@ -14,7 +14,6 @@ keep_repo=0
 shell_rc=
 fish_target=${XDG_CONFIG_HOME:-"$HOME/.config"}/fish/conf.d/scriptorium.fish
 fish_expected_plain=
-fish_expected_tmux=
 shell_targets=()
 
 usage() {
@@ -113,33 +112,19 @@ add_shell_target() {
 }
 
 write_fish_expected() {
-    local target=$1 enable_tmux=$2
-    {
-        printf 'fish_add_path -g %s\n' "$bin_dir"
-        if [[ $enable_tmux == 1 ]]; then
-            cat <<'EOF'
-if status is-interactive; and test -n "$SSH_CONNECTION"; and test -z "$TMUX"; \
-        and test -z "$NO_AUTO_TMUX"; and test -z "$SSH_ORIGINAL_COMMAND"; \
-        and test "$TERM" != dumb; and command -q tmux
-    exec tmux new-session -A -s main
-end
-EOF
-        fi
-    } >"$target"
+    printf 'fish_add_path -g %s\n' "$bin_dir" >"$1"
 }
 
 add_shell_target "$HOME/.bashrc"
 add_shell_target "$HOME/.zshrc"
 add_shell_target "$shell_rc"
 fish_expected_plain=$(mktemp "${TMPDIR:-/tmp}/scriptorium-fish.XXXXXX")
-fish_expected_tmux=$(mktemp "${TMPDIR:-/tmp}/scriptorium-fish.XXXXXX")
-trap 'rm -f -- "$fish_expected_plain" "$fish_expected_tmux"' EXIT
-write_fish_expected "$fish_expected_plain" 0
-write_fish_expected "$fish_expected_tmux" 1
+trap 'rm -f -- "$fish_expected_plain"' EXIT
+write_fish_expected "$fish_expected_plain"
 
 # Validate every target before changing any user file. Backups are deliberately not targets.
 for target in \
-    "$preferences_file" "$config_dir/tmux.conf" "$config_dir/tools.selected" \
+    "$preferences_file" "$config_dir/tools.selected" \
     "$config_dir/tools.state" "$config_dir/mise.toml" "$config_dir/tools-env.sh" \
     "$config_dir/capabilities.md" "$config_dir/tools.catalog-reviewed" \
     "$state_dir/deployed-commit" "$state_dir/update.state" \
@@ -159,10 +144,8 @@ for target in \
     assert_safe_path "$target"
 done
 preflight_block "$codex_home/AGENTS.md" '<!-- >>> scriptorium >>> -->' '<!-- <<< scriptorium <<< -->'
-preflight_block "${TMUX_CONFIG:-"$HOME/.tmux.conf"}" '# >>> scriptorium >>>' '# <<< scriptorium <<<'
 for target in "${shell_targets[@]}"; do
     preflight_block "$target" '# >>> scriptorium >>>' '# <<< scriptorium <<<'
-    preflight_block "$target" '# >>> tmux-init auto-tmux >>>' '# <<< tmux-init auto-tmux <<<'
 done
 assert_safe_path "$fish_target"
 
@@ -184,10 +167,8 @@ if [[ $assume_yes == 0 ]]; then
 fi
 
 remove_managed_block "$codex_home/AGENTS.md" '<!-- >>> scriptorium >>> -->' '<!-- <<< scriptorium <<< -->'
-remove_managed_block "${TMUX_CONFIG:-"$HOME/.tmux.conf"}" '# >>> scriptorium >>>' '# <<< scriptorium <<<'
 for target in "${shell_targets[@]}"; do
     remove_managed_block "$target" '# >>> scriptorium >>>' '# <<< scriptorium <<<'
-    remove_managed_block "$target" '# >>> tmux-init auto-tmux >>>' '# <<< tmux-init auto-tmux <<<'
 done
 
 remove_if_identical "$codex_home/scriptorium-cheap.config.toml" \
@@ -212,13 +193,11 @@ remove_if_identical "$codex_home/skills/reuse-first/agents/openai.yaml" \
     "$repo_dir/codex/skills/reuse-first/agents/openai.yaml" 'Codex skill metadata'
 remove_if_identical "$codex_home/skills/reuse-first/references/tooling.md" \
     "$repo_dir/codex/skills/reuse-first/references/tooling.md" 'Codex skill reference'
-remove_if_identical "$config_dir/tmux.conf" "$repo_dir/tmux/tmux.conf" 'tmux fragment'
 remove_if_identical "$bin_dir/scodex" "$repo_dir/bin/scodex" 'launcher'
 remove_if_identical "$bin_dir/scriptorium-preferences.sh" "$repo_dir/scripts/preferences.sh" 'launcher helper'
 
 if [[ -e $fish_target ]]; then
-    if cmp -s -- "$fish_target" "$fish_expected_plain" \
-        || cmp -s -- "$fish_target" "$fish_expected_tmux"; then
+    if cmp -s -- "$fish_target" "$fish_expected_plain"; then
         rm -f -- "$fish_target"
         printf 'Removed Fish integration: %s\n' "$fish_target"
     else

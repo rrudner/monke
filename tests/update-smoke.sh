@@ -23,12 +23,12 @@ chmod +x "$work_base/bin/codex"
 export PATH
 
 bash -n "$repo_dir/install.sh" "$repo_dir/update.sh" "$repo_dir"/scripts/*.sh \
-    "$repo_dir"/codex/scripts/*.sh "$repo_dir"/tmux/scripts/*.sh "$repo_dir"/tests/update-smoke.sh
+    "$repo_dir"/codex/scripts/*.sh "$repo_dir"/tests/update-smoke.sh
 
 git_work=$work_base/source
 mkdir -p -- "$git_work"
 cp -a -- "$repo_dir/install.sh" "$repo_dir/update.sh" "$repo_dir/AGENTS.md" "$repo_dir/README.md" \
-    "$repo_dir/.agents" "$repo_dir/bin" "$repo_dir/codex" "$repo_dir/scripts" "$repo_dir/tmux" \
+    "$repo_dir/.agents" "$repo_dir/bin" "$repo_dir/codex" "$repo_dir/scripts" \
     "$repo_dir/tools" "$repo_dir/tests" "$git_work"/
 git -C "$git_work" init -q -b main
 git -C "$git_work" config user.email test@example.invalid
@@ -54,7 +54,6 @@ HOME=$test_root/home
 mkdir -p -- "$HOME/.config/scriptorium"
 cat >"$HOME/.config/scriptorium/preferences" <<EOF
 repo_dir=$work_base/local
-tmux=0
 tools=1
 update_check=1
 shell=bash

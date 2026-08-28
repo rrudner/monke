@@ -6,11 +6,9 @@ test_root=$(mktemp -d /tmp/scriptorium-smoke.XXXXXX)
 trap 'rm -rf -- "$test_root"' EXIT
 mkdir -p -- "$test_root/bin" "$test_root/home/.codex"
 export XDG_STATE_HOME="$test_root/home/.local/state"
-ln -s /bin/true "$test_root/bin/tmux"
 
 bash -n "$repo_dir/install.sh" "$repo_dir/uninstall.sh" "$repo_dir/update.sh" "$repo_dir/bin/scodex" \
-    "$repo_dir"/scripts/*.sh "$repo_dir"/codex/scripts/*.sh \
-    "$repo_dir"/tmux/scripts/*.sh "$repo_dir"/tests/*.sh
+    "$repo_dir"/scripts/*.sh "$repo_dir"/codex/scripts/*.sh "$repo_dir"/tests/*.sh
 
 bash "$repo_dir/tests/managed-block-smoke.sh"
 bash "$repo_dir/tests/developer-instructions-smoke.sh"
@@ -23,7 +21,6 @@ trust_level = "trusted"
 EOF
 cp -- "$test_root/home/.codex/config.toml" "$test_root/original-config.toml"
 printf '# User instructions\n\nKeep this content.\n' >"$test_root/home/.codex/AGENTS.md"
-printf 'set -g status off\n' >"$test_root/home/.tmux.conf"
 printf 'alias user_command=true\n' >"$test_root/home/.bashrc"
 
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$test_root/home" \
@@ -60,11 +57,7 @@ if grep -q 'including small searches' "$test_root/home/.codex/AGENTS.md"; then
 fi
 grep -q 'Default to local work.' \
     "$test_root/home/.codex/skills/scriptorium-delegate/SKILL.md"
-grep -q '^# >>> scriptorium >>>$' "$test_root/home/.tmux.conf"
-grep -q '^set -g status off$' "$test_root/home/.tmux.conf"
 grep -q '^alias user_command=true$' "$test_root/home/.bashrc"
-grep -q 'tmux new-session -A -s main' "$test_root/home/.bashrc"
-grep -qx 'tmux=1' "$test_root/home/.config/scriptorium/preferences"
 repo_pref_test=$test_root/home/.config/scriptorium/preferences-preferences-reader
 cat >"$repo_pref_test" <<'EOF'
 tools=0
@@ -130,13 +123,10 @@ grep -Fxq "developer_instructions_file=$custom_instructions" \
 
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$test_root/home" \
 CODEX_HOME="$test_root/home/.codex" \
-    "$repo_dir/install.sh" --without-tmux --without-update-check --without-tools \
+    "$repo_dir/install.sh" --without-update-check --without-tools \
     --without-developer-instructions \
     >"$test_root/disable.log"
 grep -qx 'developer_instructions=0' "$test_root/home/.config/scriptorium/preferences"
-! grep -q '^source-file .*scriptorium' "$test_root/home/.tmux.conf"
-grep -q '^set -g status off$' "$test_root/home/.tmux.conf"
-! grep -q 'tmux new-session -A -s main' "$test_root/home/.bashrc"
 grep -q '.local/bin' "$test_root/home/.bashrc"
 
 legacy_home=$test_root/legacy-home
@@ -145,22 +135,18 @@ cp -- "$repo_dir/codex/config.toml" "$legacy_home/.codex/config.toml"
 printf '\n[projects."/srv/legacy"]\ntrust_level = "trusted"\n' \
     >>"$legacy_home/.codex/config.toml"
 cp -- "$repo_dir/codex/AGENTS.md" "$legacy_home/.codex/AGENTS.md"
-cp -- "$repo_dir/tmux/tmux.conf" "$legacy_home/.tmux.conf"
 PATH="$test_root/bin:$PATH" SHELL=/bin/zsh HOME="$legacy_home" \
 CODEX_HOME="$legacy_home/.codex" \
     "$repo_dir/install.sh" --without-tools --shell zsh >"$test_root/legacy.log"
 ! grep -q '^model = ' "$legacy_home/.codex/config.toml"
 grep -q '^\[projects."/srv/legacy"\]$' "$legacy_home/.codex/config.toml"
 grep -q '^<!-- >>> scriptorium >>> -->$' "$legacy_home/.codex/AGENTS.md"
-grep -q '^source-file .*scriptorium' "$legacy_home/.tmux.conf"
-grep -q 'tmux new-session -A -s main' "$legacy_home/.zshrc"
 
 fish_home=$test_root/fish-home
 PATH="$test_root/bin:$PATH" SHELL=/usr/bin/fish HOME="$fish_home" \
 CODEX_HOME="$fish_home/.codex" \
     "$repo_dir/install.sh" --without-tools --shell fish >"$test_root/fish.log"
 grep -q '^fish_add_path ' "$fish_home/.config/fish/conf.d/scriptorium.fish"
-grep -q 'tmux new-session -A -s main' "$fish_home/.config/fish/conf.d/scriptorium.fish"
 [[ ! -e $fish_home/.codex/config.toml ]]
 
 path_hook_home=$test_root/path-hook-home
@@ -186,7 +172,6 @@ rollback_home=$test_root/rollback-home
 mkdir -p -- "$rollback_home/.codex" "$rollback_home/.config/scriptorium"
 cat >"$rollback_home/.config/scriptorium/preferences" <<'EOF'
 repo_dir=/previous/repository
-tmux=0
 update_check=0
 tools=0
 shell=bash
@@ -201,7 +186,7 @@ EOF
 cp -- "$rollback_home/.codex/AGENTS.md" "$test_root/original-agents"
 if PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$rollback_home" \
 CODEX_HOME="$rollback_home/.codex" \
-    "$repo_dir/install.sh" --without-tmux --with-update-check --without-tools \
+    "$repo_dir/install.sh" --with-update-check --without-tools \
     >"$test_root/rollback.log" 2>&1; then
     printf 'Expected malformed managed markers to stop installation.\n' >&2
     exit 1
@@ -209,24 +194,6 @@ fi
 cmp -s "$test_root/original-preferences" \
     "$rollback_home/.config/scriptorium/preferences"
 cmp -s "$test_root/original-agents" "$rollback_home/.codex/AGENTS.md"
-
-shell_rollback_home=$test_root/shell-rollback-home
-mkdir -p -- "$shell_rollback_home"
-cat >"$shell_rollback_home/.bashrc" <<'EOF'
-# >>> tmux-init auto-tmux >>>
-legacy command
-# <<< tmux-init auto-tmux <<<
-# <<< scriptorium <<<
-User shell content.
-# >>> scriptorium >>>
-EOF
-cp -- "$shell_rollback_home/.bashrc" "$test_root/original-shell-rollback"
-if HOME="$shell_rollback_home" SCRIPTORIUM_SHELL=bash \
-    "$repo_dir/scripts/install-shell-hook.sh" >"$test_root/shell-rollback.log" 2>&1; then
-    printf 'Expected malformed shell markers to stop migration.\n' >&2
-    exit 1
-fi
-cmp -s "$test_root/original-shell-rollback" "$shell_rollback_home/.bashrc"
 
 symlink_home=$test_root/symlink-home
 symlink_outside=$test_root/symlink-outside
@@ -247,15 +214,13 @@ printf 'preserve backup\n' >"$uninstall_home/.config/scriptorium/preferences.bac
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$uninstall_home" \
 CODEX_HOME="$uninstall_home/.codex" \
     "$repo_dir/install.sh" --without-tools --shell bash >"$test_root/uninstall-install.log"
-PATH="$test_root/bin:$PATH" HOME="$uninstall_home" SCRIPTORIUM_SHELL=zsh SCRIPTORIUM_TMUX=1 \
+PATH="$test_root/bin:$PATH" HOME="$uninstall_home" SCRIPTORIUM_SHELL=zsh \
     "$repo_dir/scripts/install-shell-hook.sh" >"$test_root/uninstall-zsh-hook.log"
-PATH="$test_root/bin:$PATH" HOME="$uninstall_home" SCRIPTORIUM_SHELL=bash SCRIPTORIUM_TMUX=0 \
+PATH="$test_root/bin:$PATH" HOME="$uninstall_home" SCRIPTORIUM_SHELL=bash \
     "$repo_dir/scripts/install-shell-hook.sh" "$uninstall_home/.customrc" \
     >"$test_root/uninstall-custom-hook.log"
-PATH="$test_root/bin:$PATH" HOME="$uninstall_home" SCRIPTORIUM_SHELL=fish SCRIPTORIUM_TMUX=1 \
+PATH="$test_root/bin:$PATH" HOME="$uninstall_home" SCRIPTORIUM_SHELL=fish \
     "$repo_dir/scripts/install-shell-hook.sh" >"$test_root/uninstall-fish-hook.log"
-printf '# >>> tmux-init auto-tmux >>>\nlegacy command\n# <<< tmux-init auto-tmux <<<\n' \
-    >>"$uninstall_home/.bashrc"
 sed -i "s|^shell_rc=.*|shell_rc=$uninstall_home/.customrc|" \
     "$uninstall_home/.config/scriptorium/preferences"
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$uninstall_home" \
@@ -263,10 +228,8 @@ CODEX_HOME="$uninstall_home/.codex" \
     "$uninstall_home/.local/bin/scodex" uninstall --yes --keep-repo >"$test_root/uninstall.log"
 ! grep -q '^<!-- >>> scriptorium >>> -->$' "$uninstall_home/.codex/AGENTS.md"
 ! grep -q '^# >>> scriptorium >>>$' "$uninstall_home/.bashrc"
-! grep -q '^# >>> tmux-init auto-tmux >>>$' "$uninstall_home/.bashrc"
 ! grep -q '^# >>> scriptorium >>>$' "$uninstall_home/.zshrc"
 ! grep -q '^# >>> scriptorium >>>$' "$uninstall_home/.customrc"
-! grep -q '^# >>> scriptorium >>>$' "$uninstall_home/.tmux.conf"
 [[ ! -e $uninstall_home/.codex/scriptorium-hard.config.toml ]]
 [[ ! -e $uninstall_home/.codex/skills/compact-markdown ]]
 [[ ! -e $uninstall_home/.codex/skills/reuse-first ]]

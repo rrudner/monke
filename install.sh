@@ -10,7 +10,6 @@ preferences_file=$config_dir/preferences
 source "$repo_dir/scripts/preferences.sh"
 source "$repo_dir/scripts/backup.sh"
 mode=interactive
-tmux_choice=
 update_choice=
 tools_choice=
 tools_selection=
@@ -23,7 +22,6 @@ usage() {
     cat <<'EOF'
 Usage: ./install.sh [options]
 
-  --with-tmux | --without-tmux
   --with-update-check | --without-update-check
   --with-auto-update | --without-auto-update   Legacy aliases
   --with-tools | --without-tools
@@ -54,8 +52,6 @@ prompt_boolean() {
 
 while (($#)); do
     case $1 in
-        --with-tmux) tmux_choice=1; mode=flags ;;
-        --without-tmux) tmux_choice=0; mode=flags ;;
         --with-update-check|--with-auto-update) update_choice=1; mode=flags ;;
         --without-update-check|--without-auto-update) update_choice=0; mode=flags ;;
         --with-tools) tools_choice=1; mode=flags ;;
@@ -97,7 +93,6 @@ while (($#)); do
     shift
 done
 
-saved_tmux=$(read_pref "$preferences_file" tmux 1)
 saved_update=$(read_pref "$preferences_file" update_check "$(read_pref "$preferences_file" auto_update 1)")
 saved_tools_default=0
 [[ -s $config_dir/tools.selected ]] && saved_tools_default=1
@@ -115,28 +110,16 @@ developer_instructions_file_choice=${developer_instructions_file_choice:-$saved_
 case $shell_choice in bash|zsh|fish) ;; *) shell_choice=bash ;; esac
 
 if [[ $mode == interactive && -t 0 ]]; then
-    if command -v tmux >/dev/null 2>&1; then
-        tmux_choice=$(prompt_boolean 'Enable tmux integration?' "$saved_tmux")
-    else
-        tmux_choice=0
-        printf 'Tmux integration is unavailable because tmux is not installed.\n'
-    fi
     update_choice=$(prompt_boolean 'Check for Scriptorium updates when scodex starts?' "$saved_update")
     tools_choice=$(prompt_boolean 'Configure optional scodex tools?' "$saved_tools")
     developer_instructions_choice=$saved_developer_instructions
 elif [[ $mode == saved ]]; then
-    tmux_choice=$saved_tmux; update_choice=$saved_update; tools_choice=$saved_tools
+    update_choice=$saved_update; tools_choice=$saved_tools
     developer_instructions_choice=$saved_developer_instructions
 else
-    tmux_choice=${tmux_choice:-$saved_tmux}
     update_choice=${update_choice:-$saved_update}
     tools_choice=${tools_choice:-$saved_tools}
     developer_instructions_choice=${developer_instructions_choice:-$saved_developer_instructions}
-fi
-
-if [[ $tmux_choice == 1 ]] && ! command -v tmux >/dev/null 2>&1; then
-    printf 'Tmux selection disabled because tmux is not installed.\n' >&2
-    tmux_choice=0
 fi
 
 mkdir -p -- "$config_dir" "$data_dir" "$state_dir" "$bin_dir"
@@ -167,7 +150,6 @@ rollback_install() {
 trap rollback_install EXIT
 {
     printf 'repo_dir=%s\n' "$repo_dir"
-    printf 'tmux=%s\n' "$tmux_choice"
     printf 'update_check=%s\n' "$update_choice"
     printf 'tools=%s\n' "$tools_choice"
     printf 'shell=%s\n' "$shell_choice"
@@ -197,14 +179,7 @@ else
 fi
 "$repo_dir/codex/scripts/render-agents.sh"
 
-if [[ $tmux_choice == 1 ]]; then
-    "$repo_dir/tmux/scripts/install-tmux.sh"
-else
-    "$repo_dir/tmux/scripts/install-tmux.sh" --disable
-fi
-
-SCRIPTORIUM_TMUX=$tmux_choice SCRIPTORIUM_SHELL=$shell_choice \
-    "$repo_dir/scripts/install-shell-hook.sh" "$shell_rc"
+SCRIPTORIUM_SHELL=$shell_choice "$repo_dir/scripts/install-shell-hook.sh" "$shell_rc"
 
 wrapper_target=$bin_dir/scodex
 helper_source=$repo_dir/scripts/preferences.sh

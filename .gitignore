@@ -12,5 +12,4 @@
 .scriptorium/
 .config/
 .local/
-.tmux.conf*
 /TODO.md

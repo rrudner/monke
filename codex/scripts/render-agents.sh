@@ -30,9 +30,5 @@ if [[ -s $capabilities_file ]]; then
 else
     printf '%s\n' '- No optional Scriptorium tools are currently available.' >>"$content"
 fi
-if grep -qx 'tmux=1' "$config_dir/preferences" 2>/dev/null && command -v tmux >/dev/null 2>&1; then
-    printf '%s\n' '- `tmux`: system, available for persistent terminal sessions.' >>"$content"
-fi
-
 update_managed_block "$target" "$content" "$start_marker" "$end_marker" append \
     "$package_dir/AGENTS.md"

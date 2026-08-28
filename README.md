@@ -17,7 +17,6 @@ git clone https://github.com/rrudner/scriptorium.git ~/.local/share/scriptorium/
 
 The Bash, Zsh, and Fish installer lets you choose:
 
-- tmux integration, enabled by default when tmux is already installed;
 - update checks on `scodex` startup, enabled by default;
 - isolated optional tools, disabled by default.
 
@@ -70,14 +69,12 @@ scodex stats                   # Show readable token usage for the current proje
 | Codex instructions | `~/.codex/AGENTS.md` | Marker-managed block |
 | Codex skills | `~/.codex/skills/{compact-markdown,reuse-first,scriptorium-delegate}` | Unchanged or backed up, then replaced |
 | Session instructions | `.agents/skills/monke-language/SKILL.md` | Git-managed |
-| Tmux settings | `~/.config/scriptorium/tmux.conf` | Scriptorium-managed |
-| Shell and tmux hooks | User configuration files | Marker-managed blocks |
+| Shell hooks | User configuration files | Marker-managed blocks |
 | Optional tool data | Matching XDG data/cache/state directories | Isolated |
 | Project token statistics | `.scriptorium/stats` in a launched project | Replaced after each completed `scodex` run |
 
 `scodex` loads a namespaced Codex profile, exposes only the selected tool environment, optionally
-checks for updates, then starts Codex. Your shell changes only through the selected small launcher
-and optional tmux blocks.
+checks for updates, then starts Codex. Your shell changes only through the selected small launcher.
 
 Each `scodex` session loads the repository's Monke instructions. The launcher removes `SKILL.md`
 frontmatter, passes its body through Codex's `developer_instructions` setting, identifies the
@@ -110,9 +107,6 @@ marker contains only the thread ID and run start time.
 - Symlinked managed files and escaping parent symlinks are rejected.
 - Failed installation restores the previous saved preferences.
 - Modified legacy assets are preserved and reported.
-
-Tmux settings are sourced first in `~/.tmux.conf`, so later settings take precedence. Scriptorium
-never installs or removes tmux.
 
 ## Repository updates 🚢
 

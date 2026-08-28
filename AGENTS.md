@@ -2,7 +2,7 @@
 
 ## Scope
 
-- Maintain a portable Linux Codex CLI setup. Codex is required; optional tools, tmux, and automatic
+- Maintain a portable Linux Codex CLI setup. Codex is required; optional tools and automatic
   updates remain independently configurable through `install.sh`.
 - `codex/AGENTS.md` is an installed end-user payload, not a contributor instruction file.
 
@@ -16,14 +16,14 @@
 - Preserve existing installer flags and saved preference keys unless a migration is included.
 - Updates run only from `scodex`, stay fast-forward-only, and never block Codex startup.
 - Document every new managed user file as replaced, merged, or marker-edited. Never replace the
-  base Codex config. Change user-owned AGENTS, tmux, Bash, and Zsh files only inside Scriptorium
-  markers; use a namespaced Fish file.
+  base Codex config. Change user-owned AGENTS, Bash, and Zsh files only inside Scriptorium markers;
+  use a namespaced Fish file.
 
 ## Verification
 
-- Run `bash -n install.sh update.sh bin/scodex scripts/*.sh codex/scripts/*.sh
-  tmux/scripts/*.sh tests/*.sh` after shell changes.
-- Run `./tests/smoke.sh` after installer, updater, preference, Codex merge, or tmux behavior changes.
+- Run `bash -n install.sh update.sh bin/scodex scripts/*.sh codex/scripts/*.sh tests/*.sh` after
+  shell changes.
+- Run `./tests/smoke.sh` after installer, updater, preference, or Codex merge changes.
 - Before finishing, check changed files for home data, credentials, generated archives, and
   unrelated edits.
 
