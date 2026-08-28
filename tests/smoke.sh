@@ -5,6 +5,7 @@ repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 test_root=$(mktemp -d /tmp/scriptorium-smoke.XXXXXX)
 trap 'rm -rf -- "$test_root"' EXIT
 mkdir -p -- "$test_root/bin" "$test_root/home/.codex"
+export XDG_STATE_HOME="$test_root/home/.local/state"
 ln -s /bin/true "$test_root/bin/tmux"
 
 bash -n "$repo_dir/install.sh" "$repo_dir/uninstall.sh" "$repo_dir/update.sh" "$repo_dir/bin/scodex" \
@@ -37,17 +38,27 @@ grep -q '^default_subagent_model = "gpt-5.3-codex-spark"$' \
 [[ -f "$test_root/home/.codex/skills/reuse-first/SKILL.md" ]]
 [[ -f "$test_root/home/.codex/skills/reuse-first/agents/openai.yaml" ]]
 [[ -f "$test_root/home/.codex/skills/reuse-first/references/tooling.md" ]]
-grep -q '$reuse-first' "$test_root/home/.codex/skills/reuse-first/SKILL.md"
+[[ -f "$test_root/home/.codex/skills/compact-markdown/SKILL.md" ]]
+[[ -f "$test_root/home/.codex/skills/compact-markdown/agents/openai.yaml" ]]
+grep -q 'compact only the requested or edited scope' \
+    "$test_root/home/.codex/skills/compact-markdown/SKILL.md"
+grep -q 'allow_implicit_invocation: true' \
+    "$test_root/home/.codex/skills/compact-markdown/agents/openai.yaml"
+grep -q '^name: reuse-first$' "$test_root/home/.codex/skills/reuse-first/SKILL.md"
 grep -q 'default_prompt' "$test_root/home/.codex/skills/reuse-first/agents/openai.yaml"
 grep -q 'overlap exists' "$test_root/home/.codex/skills/reuse-first/SKILL.md"
 grep -q '^<!-- >>> scriptorium >>> -->$' "$test_root/home/.codex/AGENTS.md"
 grep -q '^Keep this content\.$' "$test_root/home/.codex/AGENTS.md"
+grep -q '^## Proportionality$' "$test_root/home/.codex/AGENTS.md"
+grep -q 'Produce the shortest complete result.' \
+    "$test_root/home/.codex/AGENTS.md"
+grep -q 'Invoke `$compact-markdown`' "$test_root/home/.codex/AGENTS.md"
 grep -q 'Keep small, single-goal work local' "$test_root/home/.codex/AGENTS.md"
 if grep -q 'including small searches' "$test_root/home/.codex/AGENTS.md"; then
     printf 'Installed Scriptorium block retained aggressive delegation instructions.\n' >&2
     exit 1
 fi
-grep -q 'Default to local execution' \
+grep -q 'Default to local work.' \
     "$test_root/home/.codex/skills/scriptorium-delegate/SKILL.md"
 grep -q '^# >>> scriptorium >>>$' "$test_root/home/.tmux.conf"
 grep -q '^set -g status off$' "$test_root/home/.tmux.conf"
@@ -78,19 +89,32 @@ grep -Fxq "developer_instructions_file=$repo_dir/.agents/skills/monke-language/S
 [[ -f "$test_root/home/.config/scriptorium/tools.catalog-reviewed" ]]
 
 printf '\n# Force wrapper replacement.\n' >>"$test_root/home/.local/bin/scodex"
+legacy_wrapper_backup=$test_root/home/.local/bin/scodex.backup-20240101T000000Z
+printf 'legacy wrapper backup\n' >"$legacy_wrapper_backup"
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$test_root/home" \
 CODEX_HOME="$test_root/home/.codex" \
     "$repo_dir/install.sh" --apply-saved >"$test_root/wrapper-backup.log"
 wrapper_backup=$(find "$test_root/home/.local/bin" -maxdepth 1 -type f \
     -name 'scodex.backup-*' -print -quit)
-[[ -n $wrapper_backup ]]
-[[ ! -x $wrapper_backup ]]
+[[ -z $wrapper_backup ]]
+[[ ! -e $legacy_wrapper_backup ]]
+backup_root=$test_root/home/.local/state/scriptorium/backups
+[[ -d $backup_root ]]
+wrapper_hash=$(printf '%s' "$test_root/home/.local/bin/scodex" | sha256sum | awk '{print $1}')
+[[ -d "$backup_root/$wrapper_hash" ]]
+backup_dir_count=$(find "$backup_root" -mindepth 1 -maxdepth 1 -type d | wc -l)
+[[ $backup_dir_count -gt 0 ]]
+while IFS= read -r backup_dir; do
+    backup_name=${backup_dir##*/}
+    [[ $backup_name =~ ^[[:xdigit:]]{64}$ ]]
+    [[ $(find "$backup_dir" -maxdepth 1 -type f -name 'backup-*' | wc -l) -le 3 ]]
+done < <(find "$backup_root" -mindepth 1 -maxdepth 1 -type d -print)
 
-backup_count=$(find "$test_root/home" -name '*.backup-*' | wc -l)
+backup_count=$(find "$backup_root" -type f -name 'backup-*' | wc -l)
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$test_root/home" \
 CODEX_HOME="$test_root/home/.codex" \
     "$repo_dir/install.sh" --apply-saved >"$test_root/reapply.log"
-[[ $(find "$test_root/home" -name '*.backup-*' | wc -l) -eq $backup_count ]]
+[[ $(find "$backup_root" -type f -name 'backup-*' | wc -l) -eq $backup_count ]]
 
 custom_instructions=$test_root/home/custom-SKILL.md
 printf '%s\n' 'Custom instructions.' >"$custom_instructions"
@@ -244,6 +268,7 @@ CODEX_HOME="$uninstall_home/.codex" \
 ! grep -q '^# >>> scriptorium >>>$' "$uninstall_home/.customrc"
 ! grep -q '^# >>> scriptorium >>>$' "$uninstall_home/.tmux.conf"
 [[ ! -e $uninstall_home/.codex/scriptorium-hard.config.toml ]]
+[[ ! -e $uninstall_home/.codex/skills/compact-markdown ]]
 [[ ! -e $uninstall_home/.codex/skills/reuse-first ]]
 [[ ! -e $uninstall_home/.local/bin/scodex ]]
 [[ ! -e $uninstall_home/.config/scriptorium/preferences ]]
@@ -274,10 +299,13 @@ PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$modified_home" \
 CODEX_HOME="$modified_home/.codex" \
     "$repo_dir/install.sh" --without-tools --shell bash >"$test_root/modified-install.log"
 printf '# user modification\n' >>"$modified_home/.codex/scriptorium-hard.config.toml"
+printf '# user modification\n' >>"$modified_home/.codex/skills/compact-markdown/SKILL.md"
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$modified_home" \
 CODEX_HOME="$modified_home/.codex" \
     "$repo_dir/uninstall.sh" --yes --keep-repo >"$test_root/modified-uninstall.log"
 grep -q '^# user modification$' "$modified_home/.codex/scriptorium-hard.config.toml"
+grep -q '^# user modification$' \
+    "$modified_home/.codex/skills/compact-markdown/SKILL.md"
 
 marker_refusal_home=$test_root/marker-refusal-home
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$marker_refusal_home" \

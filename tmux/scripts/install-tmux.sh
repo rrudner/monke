@@ -7,7 +7,6 @@ repo_dir=$(cd -- "$package_dir/.." && pwd)
 config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}/scriptorium
 fragment=$config_dir/tmux.conf
 target=${TMUX_CONFIG:-"$HOME/.tmux.conf"}
-backup_stamp=$(date -u +%Y%m%dT%H%M%SZ)
 
 source "$repo_dir/scripts/managed-block.sh"
 
@@ -23,10 +22,10 @@ if ! command -v tmux >/dev/null 2>&1; then
 fi
 
 mkdir -p -- "$config_dir"
+prepare_backup_target "$fragment"
 if [[ ! -f $fragment ]] || ! cmp -s -- "$package_dir/tmux.conf" "$fragment"; then
     if [[ -e $fragment ]]; then
-        cp -a -- "$fragment" "$fragment.backup-$backup_stamp"
-        printf 'Backup: %s\n' "$fragment.backup-$backup_stamp"
+        backup_target "$fragment"
     fi
     fragment_candidate=$(mktemp "$config_dir/.tmux-fragment.XXXXXX")
     cp -- "$package_dir/tmux.conf" "$fragment_candidate"

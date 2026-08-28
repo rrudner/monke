@@ -8,6 +8,7 @@ state_dir=${XDG_STATE_HOME:-"$HOME/.local/state"}/scriptorium
 bin_dir=${XDG_BIN_HOME:-"$HOME/.local/bin"}
 preferences_file=$config_dir/preferences
 source "$repo_dir/scripts/preferences.sh"
+source "$repo_dir/scripts/backup.sh"
 mode=interactive
 tmux_choice=
 update_choice=
@@ -208,11 +209,13 @@ SCRIPTORIUM_TMUX=$tmux_choice SCRIPTORIUM_SHELL=$shell_choice \
 wrapper_target=$bin_dir/scodex
 helper_source=$repo_dir/scripts/preferences.sh
 helper_target=$bin_dir/scriptorium-preferences.sh
+wrapper_backup=
+helper_backup=
+prepare_backup_target "$wrapper_target"
 if [[ ! -f $wrapper_target ]] || ! cmp -s -- "$repo_dir/bin/scodex" "$wrapper_target"; then
     wrapper_candidate=$(mktemp "$bin_dir/.scodex.XXXXXX")
     if [[ -e $wrapper_target ]]; then
-        wrapper_backup=$wrapper_target.backup-$(date -u +%Y%m%dT%H%M%SZ)
-        cp -a -- "$wrapper_target" "$wrapper_backup"
+        backup_target "$wrapper_target" wrapper_backup
         chmod a-x -- "$wrapper_backup"
     fi
     cp -- "$repo_dir/bin/scodex" "$wrapper_candidate"
@@ -223,6 +226,7 @@ else
     printf 'Unchanged: %s\n' "$wrapper_target"
 fi
 
+prepare_backup_target "$helper_target"
 if [[ ! -f $helper_target ]]; then
     cp -- "$helper_source" "$helper_target"
     chmod 600 -- "$helper_target"
@@ -230,8 +234,7 @@ if [[ ! -f $helper_target ]]; then
 elif cmp -s -- "$helper_source" "$helper_target"; then
     printf 'Unchanged helper: %s\n' "$helper_target"
 else
-    helper_backup=$helper_target.backup-$(date -u +%Y%m%dT%H%M%SZ)
-    cp -a -- "$helper_target" "$helper_backup"
+    backup_target "$helper_target" helper_backup
     cp -- "$helper_source" "$helper_target"
     chmod 600 -- "$helper_target"
     printf 'Updated command support helper: %s (backed up %s)\n' "$helper_target" "$helper_backup"

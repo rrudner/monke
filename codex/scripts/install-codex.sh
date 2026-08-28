@@ -6,7 +6,7 @@ package_dir=$(cd -- "$script_dir/.." && pwd)
 repo_dir=$(cd -- "$package_dir/.." && pwd)
 codex_home=${CODEX_HOME:-"$HOME/.codex"}
 config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}/scriptorium
-backup_stamp=$(date -u +%Y%m%dT%H%M%SZ)
+source "$repo_dir/scripts/backup.sh"
 
 install_owned() {
     local source=$1 target=$2 candidate root_real parent_real
@@ -18,12 +18,13 @@ install_owned() {
         return 1
     fi
     if [[ -f $target ]] && cmp -s -- "$source" "$target"; then
+        prepare_backup_target "$target"
         printf 'Unchanged: %s\n' "$target"
         return
     fi
+    prepare_backup_target "$target"
     if [[ -e $target ]]; then
-        cp -a -- "$target" "$target.backup-$backup_stamp"
-        printf 'Backup: %s\n' "$target.backup-$backup_stamp"
+        backup_target "$target"
     fi
     candidate=$(mktemp "$(dirname -- "$target")/.scriptorium-owned.XXXXXX")
     cp -- "$source" "$candidate"
@@ -35,8 +36,10 @@ install_owned() {
 retire_if_identical() {
     local target=$1 expected=$2
     [[ -e $target ]] || return 0
+    prepare_backup_target "$target"
     if cmp -s -- "$target" "$expected"; then
-        mv -- "$target" "$target.backup-$backup_stamp"
+        backup_target "$target"
+        rm -rf -- "$target"
         printf 'Retired legacy asset: %s\n' "$target"
     else
         printf 'Preserved modified legacy asset: %s\n' "$target" >&2
@@ -50,6 +53,7 @@ migrate_legacy_config() {
         return 0
     fi
     [[ -f $target ]] || return 0
+    prepare_backup_target "$target"
     projects=$(mktemp "$codex_home/.legacy-projects.XXXXXX")
     expected=$(mktemp "$codex_home/.legacy-expected.XXXXXX")
     candidate=$(mktemp "$codex_home/.legacy-config.XXXXXX")
@@ -67,7 +71,7 @@ migrate_legacy_config() {
     fi
 
     if cmp -s -- "$target" "$package_dir/config.toml" || cmp -s -- "$target" "$expected"; then
-        cp -a -- "$target" "$target.backup-$backup_stamp"
+        backup_target "$target"
         cp -- "$projects" "$candidate"
         mv -- "$candidate" "$target"
         chmod 600 -- "$target"
@@ -92,6 +96,10 @@ install_owned "$package_dir/skills/scriptorium-delegate/SKILL.md" \
     "$codex_home/skills/scriptorium-delegate/SKILL.md"
 install_owned "$package_dir/skills/scriptorium-delegate/agents/openai.yaml" \
     "$codex_home/skills/scriptorium-delegate/agents/openai.yaml"
+install_owned "$package_dir/skills/compact-markdown/SKILL.md" \
+    "$codex_home/skills/compact-markdown/SKILL.md"
+install_owned "$package_dir/skills/compact-markdown/agents/openai.yaml" \
+    "$codex_home/skills/compact-markdown/agents/openai.yaml"
 install_owned "$package_dir/skills/reuse-first/SKILL.md" \
     "$codex_home/skills/reuse-first/SKILL.md"
 install_owned "$package_dir/skills/reuse-first/agents/openai.yaml" \
@@ -116,6 +124,7 @@ rm -f -- "$legacy_agent"
 legacy_skill=$(mktemp "$codex_home/.legacy-skill.XXXXXX")
 legacy_skill_yaml=$(mktemp "$codex_home/.legacy-skill-yaml.XXXXXX")
 legacy_skill_v1=0
+[[ ! -e $codex_home/skills/delegate ]] || prepare_backup_target "$codex_home/skills/delegate"
 sed -e 's/^name: scriptorium-delegate$/name: delegate/' \
     -e 's/`scriptorium_worker`/`token_worker`/' \
     "$package_dir/skills/scriptorium-delegate/SKILL.md" >"$legacy_skill"
@@ -136,7 +145,8 @@ if [[ -f $codex_home/skills/delegate/SKILL.md ]] \
     && { [[ $legacy_skill_v1 == 1 ]] \
         || { cmp -s -- "$codex_home/skills/delegate/SKILL.md" "$legacy_skill" \
             && cmp -s -- "$codex_home/skills/delegate/agents/openai.yaml" "$legacy_skill_yaml"; }; }; then
-    mv -- "$codex_home/skills/delegate" "$codex_home/skills/delegate.backup-$backup_stamp"
+    backup_target "$codex_home/skills/delegate"
+    rm -rf -- "$codex_home/skills/delegate"
     printf 'Retired legacy skill: %s\n' "$codex_home/skills/delegate"
 elif [[ -e $codex_home/skills/delegate ]]; then
     printf 'Preserved modified legacy skill: %s\n' "$codex_home/skills/delegate" >&2

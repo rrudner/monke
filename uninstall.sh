@@ -151,6 +151,8 @@ for target in \
     "$codex_home/agents/scriptorium-worker.toml" \
     "$codex_home/skills/scriptorium-delegate/SKILL.md" \
     "$codex_home/skills/scriptorium-delegate/agents/openai.yaml" \
+    "$codex_home/skills/compact-markdown/SKILL.md" \
+    "$codex_home/skills/compact-markdown/agents/openai.yaml" \
     "$codex_home/skills/reuse-first/SKILL.md" \
     "$codex_home/skills/reuse-first/agents/openai.yaml" \
     "$codex_home/skills/reuse-first/references/tooling.md"; do
@@ -200,6 +202,10 @@ remove_if_identical "$codex_home/skills/scriptorium-delegate/SKILL.md" \
     "$repo_dir/codex/skills/scriptorium-delegate/SKILL.md" 'Codex skill'
 remove_if_identical "$codex_home/skills/scriptorium-delegate/agents/openai.yaml" \
     "$repo_dir/codex/skills/scriptorium-delegate/agents/openai.yaml" 'Codex skill metadata'
+remove_if_identical "$codex_home/skills/compact-markdown/SKILL.md" \
+    "$repo_dir/codex/skills/compact-markdown/SKILL.md" 'Codex skill'
+remove_if_identical "$codex_home/skills/compact-markdown/agents/openai.yaml" \
+    "$repo_dir/codex/skills/compact-markdown/agents/openai.yaml" 'Codex skill metadata'
 remove_if_identical "$codex_home/skills/reuse-first/SKILL.md" \
     "$repo_dir/codex/skills/reuse-first/SKILL.md" 'Codex skill'
 remove_if_identical "$codex_home/skills/reuse-first/agents/openai.yaml" \
@@ -240,6 +246,8 @@ done
 
 remove_empty_dir "$codex_home/skills/scriptorium-delegate/agents"
 remove_empty_dir "$codex_home/skills/scriptorium-delegate"
+remove_empty_dir "$codex_home/skills/compact-markdown/agents"
+remove_empty_dir "$codex_home/skills/compact-markdown"
 remove_empty_dir "$codex_home/skills/reuse-first/agents"
 remove_empty_dir "$codex_home/skills/reuse-first/references"
 remove_empty_dir "$codex_home/skills/reuse-first"
@@ -260,4 +268,5 @@ else
 fi
 remove_empty_dir "$data_dir"
 
-printf 'Scriptorium uninstall complete. Backups, user configuration, and modified assets were preserved.\n'
+printf 'Scriptorium uninstall complete. Backups remain in %s; user configuration and modified assets were preserved.\n' \
+    "$state_dir/backups"

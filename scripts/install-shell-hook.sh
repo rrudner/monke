@@ -7,8 +7,6 @@ login_shell=${SHELL:-bash}
 shell_name=${SCRIPTORIUM_SHELL:-${login_shell##*/}}
 override_rc=${1:-}
 local_bin=${XDG_BIN_HOME:-"$HOME/.local/bin"}
-config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}/scriptorium
-backup_stamp=$(date -u +%Y%m%dT%H%M%SZ)
 legacy_backup=
 
 source "$repo_dir/scripts/managed-block.sh"
@@ -87,13 +85,14 @@ end
 EOF
     fi
     if [[ -f $target ]] && cmp -s -- "$candidate" "$target"; then
+        prepare_backup_target "$target"
         rm -f -- "$candidate"
         printf 'Unchanged: %s\n' "$target"
         return
     fi
+    prepare_backup_target "$target"
     if [[ -e $target ]]; then
-        cp -a -- "$target" "$target.backup-$backup_stamp"
-        printf 'Backup: %s\n' "$target.backup-$backup_stamp"
+        backup_target "$target"
     fi
     mv -- "$candidate" "$target"
     chmod 600 -- "$target"

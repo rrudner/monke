@@ -5,23 +5,19 @@ description: Delegate substantial independent coding, exploration, research, rev
 
 # Delegate
 
-Use native subagents or configured custom agents. Do not launch a nested CLI process when native
-delegation is available.
+Use native or configured custom subagents, never a nested CLI when native delegation is available.
 
-Treat this skill and any matching `AGENTS.md` rule as standing user authorization to spawn a
-subagent and select its model. Do not ask for confirmation before delegation. This does not
-authorize broader scope, destructive actions, permission escalation, or bypassing approvals
-required by the delegated action itself.
+This skill and matching `AGENTS.md` rules authorize spawning and model selection without
+confirmation, but not broader scope, destructive actions, escalation, or bypassed approvals.
 
 ## Decide
 
-Default to local execution. When `SCRIPTORIUM_ACTIVE=1` and a repository task is likely to inspect
-more than one file, use the single `scodex context` result requested by the installed instructions.
-Apply its unopened-context budget: `low` = 64 KB, `medium` = 24 KB or more than 8 substantive files,
-`high` = 8 KB or more than 3 substantive files, and `unknown` = the `low` budget. File count alone
-does not qualify small stubs that targeted tools can summarize cheaply. Do not measure again in the
-same turn. Small searches, focused fixes, and single test runs remain local while inside the budget.
-A separate model usage limit does not imply lower total token use.
+Default to local work. With `SCRIPTORIUM_ACTIVE=1`, before a repository task likely to inspect
+multiple files, use the one required `scodex context` result. Apply its unopened-context budget:
+`low` = 64 KB, `medium` = 24 KB or over 8 substantive files, `high` = 8 KB or over 3 substantive
+files, and `unknown` = `low`. Cheaply summarized stubs do not qualify by count. Measure once per
+turn. Keep small searches, focused fixes, and single tests local while within budget. A separate
+model limit does not imply fewer total tokens.
 
 Delegate automatically only when at least one condition is satisfied:
 
@@ -30,30 +26,25 @@ Delegate automatically only when at least one condition is satisfied:
   with the result limit defined below.
 - The user explicitly requests delegation or parallel agent work.
 
-Before spawning, compare the delegation packet plus expected result with the unopened context it
-replaces. Keep the work local when the saving is doubtful. Never delegate material already read by
-the parent. Do not delegate merely to run a single test, repeat a completed check, or obtain a
-second opinion.
+Spawn only when the packet and expected result are smaller than the unopened context replaced.
+Never delegate material already read, a single test, a repeated check, or a second opinion.
 
-Use one agent by default. Use parallel agents only for genuinely independent work when latency or
-coverage justifies the extra tokens. Never delegate when acting as a leaf worker.
+Default to one agent. Parallelize only independent work when latency or coverage justifies the
+tokens. Leaf workers never delegate.
 
 ## Route
 
 Honor an explicit model choice. Otherwise choose the first model likely to finish correctly:
 
 - `gpt-5.3-codex-spark`: prefer for narrow coding, targeted exploration, focused fixes, and test
-  triage. Do not inspect or infer the user's subscription plan, account tier, startup state, or
-  cached account metadata, tool metadata, or suggested model list to decide availability. Do not
-  report Spark as unavailable before a direct spawn fails. On the first suitable delegation in a
-  session, request Spark directly. A successful spawn proves availability for that session. Only an
-  explicit permanent authorization, unsupported-model, or account-access error marks Spark
-  unavailable for the rest of that session. Treat timeouts, overload, rate limits, and temporary
-  availability failures as transient: use Luna for the current task, record the service-provided
-  retry delay when present, and retry Spark on the first suitable delegation after that delay.
-  When no delay is provided, retry after 10 minutes. A successful retry clears the transient
-  failure state. Do not retry before the cooldown, and do not classify unrelated tool, sandbox,
-  filesystem, network, or task errors as model unavailability.
+  triage. Test availability by direct spawn, never subscription, account, startup, cache, tool
+  metadata, or suggested-model inspection. Request Spark on the session's first suitable
+  delegation; success proves session availability. Only an explicit permanent authorization,
+  unsupported-model, or account-access error disables it for that session. For timeouts, overload,
+  rate limits, or temporary failures, use Luna for the task and retry Spark on the first suitable
+  delegation after the supplied delay, or after 10 minutes when absent. Success clears the failure.
+  Do not retry before cooldown or treat unrelated tool, sandbox, filesystem, network, or task errors
+  as model unavailability.
 - `gpt-5.6-luna`: use for targeted search, extraction, classification, transformation, simple
   checks, and summaries. This is the lightweight fallback.
 - `gpt-5.6-terra`: use for everyday debugging, review, and scoped implementation needing normal
@@ -61,13 +52,12 @@ Honor an explicit model choice. Otherwise choose the first model likely to finis
 - `gpt-5.6-sol`: reserve for ambiguous architecture, security-sensitive analysis, difficult
   multi-step reasoning, or one escalation after a smaller model lacks confidence.
 
-Use low reasoning for clear work and medium for normal coding. Increase it only when needed.
+Use low reasoning for clear work, medium for normal coding, and more only when needed.
 
 ## Delegate
 
-Spawn the `scriptorium_worker` custom agent when present and pass the selected model and effort
-explicitly. Otherwise use a native leaf agent with those settings. Fork no conversation history,
-or the smallest supported slice. Send only:
+Use `scriptorium_worker` when present, otherwise a native leaf agent. Pass model and effort
+explicitly, fork no history or the smallest supported slice, and send only:
 
 ```text
 You are a leaf worker in a wider project. Do not delegate.
@@ -79,13 +69,12 @@ Return: <=120 words or 6 bullets: outcome, decisive evidence with paths, verific
 No narration or raw logs. If blocked, return ESCALATE: <reason>.
 ```
 
-Do not paste chat history, whole files, or full logs when the worker can read them. Give exact
-paths and symbols instead.
+Give exact paths and symbols; do not paste readable chat history, files, or logs.
 
 ## Collect
 
-Wait for the selected worker. Reuse it for one focused follow-up instead of spawning another.
-Forward only concise findings; verify material claims or edits at the narrowest relevant boundary.
+Wait for the worker and reuse it for one focused follow-up. Forward only concise findings and
+verify material claims or edits at the narrowest boundary.
 
 Within one task, escalate at most once: Spark to Luna for availability, Luna to Terra for
 reasoning, or Terra to Sol for ambiguity. A later Spark retry after its cooldown starts a new

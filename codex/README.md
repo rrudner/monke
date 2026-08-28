@@ -1,7 +1,8 @@
 # Codex component
 
-This component installs the shared Codex configuration, delegation and reuse-first skills, agent, and model
-profiles. Use the repository-level `install.sh` for normal setup.
+This component installs the shared Codex configuration, delegation, Markdown compaction, and
+reuse-first skills, agent, and model profiles. Use the repository-level `install.sh` for normal
+setup.
 
 The default `scodex` profile uses Sol. Lower-cost profiles are also available:
 

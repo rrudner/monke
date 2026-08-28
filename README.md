@@ -1,29 +1,21 @@
-# Scriptorium
+# Scriptorium 🐒
 
-**A portable, updateable Codex CLI workspace for Linux.**
+**A portable, updateable Codex CLI workspace for Linux.** It deploys Codex profiles,
+instructions, terminal integration, and optional developer tools consistently without owning your
+existing configuration. Start everything with `scodex`; update checks run there, never at shell
+login. A competent monkey crew keeps the terminal ship and its scrolls in order; you keep the
+helm.
 
-Scriptorium gives you the same Codex profiles, instructions, terminal integration, and optional
-developer tools on every machine, without taking ownership of your existing configuration.
-Everything starts through one command: `scodex`.
+## Quick start 🍌
 
-## Why Scriptorium?
-
-- Keep one setup in Git and deploy it consistently across machines.
-- Check for repository updates when `scodex` starts, never during shell login.
-- Choose between cheap, normal, and hard Codex profiles.
-- Reuse installed tools or keep missing ones isolated from the system.
-- Preserve personal Codex, shell, and tmux settings.
-
-## Quick start
-
-Codex, Git, Bash, standard GNU utilities, and util-linux (`flock`) must already be available.
+Requires Codex, Git, Bash, standard GNU utilities, and util-linux (`flock`).
 
 ```bash
 git clone https://github.com/rrudner/scriptorium.git ~/.local/share/scriptorium/repo
 ~/.local/share/scriptorium/repo/install.sh
 ```
 
-The installer supports Bash, Zsh, and Fish. It lets you choose:
+The Bash, Zsh, and Fish installer lets you choose:
 
 - tmux integration, enabled by default when tmux is already installed;
 - update checks on `scodex` startup, enabled by default;
@@ -39,11 +31,11 @@ For unattended installation and all available flags, run `./install.sh --help`.
 
 ## Uninstall
 
-Run `scodex uninstall` and confirm the prompt, or use `scodex uninstall --yes` for automation.
-It removes only matching Scriptorium assets and marker-managed integration, retaining user files,
-timestamped backups, and modified assets. A clean repository in the default data location is
-removed last; pass `--keep-repo` to retain it. Invalid markers or symbolic-link paths stop before
-any file is changed.
+Run `scodex uninstall` and confirm, or use `scodex uninstall --yes` for automation. It removes
+only matching Scriptorium assets and marker-managed integration, retaining user files, timestamped
+backups, and modified assets. A clean repository in the default data location is removed last;
+pass `--keep-repo` to retain it. Invalid markers or symbolic-link paths stop before any file is
+changed.
 
 ## Everyday commands
 
@@ -67,7 +59,7 @@ scodex context                 # Show current main-context pressure for diagnost
 scodex stats                   # Show readable token usage for the current project
 ```
 
-## How it works
+## How it works 📜
 
 | Component | Location | Ownership |
 |---|---|---|
@@ -76,59 +68,65 @@ scodex stats                   # Show readable token usage for the current proje
 | Launcher helper | `~/.local/bin/scriptorium-preferences.sh` | Scriptorium-managed |
 | Codex profiles | `~/.codex/scriptorium-*.config.toml` | Scriptorium-managed |
 | Codex instructions | `~/.codex/AGENTS.md` | Marker-managed block |
+| Codex skills | `~/.codex/skills/{compact-markdown,reuse-first,scriptorium-delegate}` | Unchanged or backed up, then replaced |
 | Session instructions | `.agents/skills/monke-language/SKILL.md` | Git-managed |
 | Tmux settings | `~/.config/scriptorium/tmux.conf` | Scriptorium-managed |
 | Shell and tmux hooks | User configuration files | Marker-managed blocks |
 | Optional tool data | Matching XDG data/cache/state directories | Isolated |
 | Project token statistics | `.scriptorium/stats` in a launched project | Replaced after each completed `scodex` run |
 
-`scodex` loads a namespaced Codex profile, exposes only the selected tool environment, checks for
-updates when enabled, and then starts Codex. Your regular shell remains unchanged apart from the
-small launcher and optional tmux blocks selected during installation.
+`scodex` loads a namespaced Codex profile, exposes only the selected tool environment, optionally
+checks for updates, then starts Codex. Your shell changes only through the selected small launcher
+and optional tmux blocks.
 
-Each new `scodex` session automatically loads the repository's Monke instructions. The launcher
-removes `SKILL.md` frontmatter, passes the body through Codex's `developer_instructions` setting,
-identifies the session as Scriptorium, and reads the file only once for that session. Use
+Each `scodex` session loads the repository's Monke instructions. The launcher removes `SKILL.md`
+frontmatter, passes its body through Codex's `developer_instructions` setting, identifies the
+session as Scriptorium, and reads it once. Use
 `scodex configure --developer-instructions-file /absolute/path/to/another/SKILL.md` to select any
 other instruction file, or `scodex configure --without-developer-instructions` to disable this
 behavior. A missing or invalid file produces one warning and does not prevent Codex from starting.
 
-Scriptorium keeps small, single-goal work local. Before broad exploration it reads only the current
-thread's token counters through `scodex context`, then lowers the delegation threshold as the main
-context fills. It delegates only unopened file or log context that a concise worker result can
-replace; having a separate Spark usage limit alone is not treated as a token saving. Missing or
-incompatible telemetry falls back to the conservative low-pressure threshold.
+Scriptorium keeps small, single-goal work local. Before broad exploration it reads only current
+thread token counters through `scodex context`, lowering the delegation threshold as the main
+context fills. It delegates only unopened file or log context replaceable by a concise result; a
+separate Spark usage limit alone is not a token saving. Missing or incompatible telemetry uses the
+conservative low-pressure threshold.
 
-`scodex stats` sums token telemetry for the current project thread, including delegate sessions.
-It reports the complete thread, the last completed launcher run (including `resume`), and the last
-main-agent turn. The project marker contains only the thread ID and run start time.
+`scodex stats` sums current-project-thread telemetry, including delegates, and reports the complete
+thread, last completed launcher run (including `resume`), and last main-agent turn. Its project
+marker contains only the thread ID and run start time.
 
 ## Safe by design
 
 - `~/.codex/config.toml` is never replaced.
 - User-owned files are edited only between explicit Scriptorium markers.
-- Every changed user file receives a timestamped backup.
+- Changed files are backed up under `${XDG_STATE_HOME:-$HOME/.local/state}/scriptorium/backups`,
+  in a directory named by the target path's full SHA-256. Each target keeps at most three
+  `backup-*` snapshots. Legacy backups are migrated only when they match the strict
+  `target.backup-YYYYMMDDTHHMMSSZ` format; `backup-user` files remain untouched.
+- Managed blocks are compared byte-for-byte before writing, so an unchanged block creates no
+  backup.
 - Invalid, duplicated, or out-of-order markers stop the edit instead of guessing.
 - Symlinked managed files and escaping parent symlinks are rejected.
 - Failed installation restores the previous saved preferences.
 - Modified legacy assets are preserved and reported.
 
-Tmux settings are sourced at the beginning of `~/.tmux.conf`, so your later settings take
-precedence. Scriptorium never installs or removes tmux itself.
+Tmux settings are sourced first in `~/.tmux.conf`, so later settings take precedence. Scriptorium
+never installs or removes tmux.
 
-## Repository updates
+## Repository updates 🚢
 
-When enabled, startup performs a Git fetch with a 10-second limit. If a new commit exists, choose
-`Install`, `Later`, or `View`. No response within 10 seconds selects `Later`; the same commit is
-snoozed for 24 hours, while a newer commit is shown immediately.
+When enabled, startup performs a 10-second Git fetch. For a new commit, choose `Install`, `Later`,
+or `View`. No response within 10 seconds selects `Later`; that commit is snoozed for 24 hours, but
+a newer commit is shown immediately.
 
-Updates are fast-forward-only and skipped when the working tree is dirty or divergent. Network,
-Git, or installation failures never prevent Codex from starting.
+Updates are fast-forward-only and skipped for a dirty or divergent working tree. Network, Git, or
+installation failures never prevent Codex from starting.
 
-When an update adds optional tools, Scriptorium reports their names. If optional tools are
-enabled, the next interactive `scodex` launch reopens the complete selector with existing choices
-preselected. New entries are labeled `(new)` and remain unchecked until selected explicitly;
-non-interactive launches keep the selection pending and show the command to run.
+When an update adds optional tools, Scriptorium reports them. If enabled, the next interactive
+`scodex` reopens the complete selector with existing choices preselected. New `(new)` entries stay
+unchecked until explicit selection; non-interactive launches leave selection pending and show the
+command.
 
 ## Optional tools
 
@@ -150,9 +148,9 @@ non-interactive launches keep the selection pending and show the command to run.
 | Lighthouse | Audit web performance, accessibility, SEO, and best practices (requires Node.js 22+) | Use for evidence-based audits of a rendered web page. | No |
 <!-- END GENERATED OPTIONAL TOOLS -->
 
-The optional-tools module itself is disabled by default. Once enabled, existing system commands
-win. Missing tools are installed without administrator access through a pinned,
-checksum-verified, isolated mise runtime and are available only inside `scodex`.
+Optional tools are disabled by default. Once enabled, system commands win; missing tools install
+without administrator access through a pinned, checksum-verified, isolated mise runtime and run
+only inside `scodex`.
 
 Installing missing tools requires `curl` or `wget` and `sha256sum`. Repository updates never
 upgrade tools; `scodex` checks for local tool updates at most weekly and only displays a notice.
@@ -174,10 +172,10 @@ HTTP Basic Auth through an `Authorization` header passed with
 ./tests/context-pressure-smoke.sh
 ```
 
-These suites cover safe installation and migration, tool isolation, update behavior, and failure
-rollback without modifying the real home directory.
+These suites cover safe installation and migration, tool isolation, updates, and failure rollback
+without modifying the real home directory.
 
-## Token benchmark
+## Token benchmark 📜
 
 Prepare and inspect the six-task Codex versus Scriptorium pilot without using model tokens:
 
@@ -185,20 +183,18 @@ Prepare and inspect the six-task Codex versus Scriptorium pilot without using mo
 ./scripts/token-benchmark.sh prepare
 ```
 
-The paid run is deliberately separate: `./scripts/token-benchmark.sh run [OUTPUT_DIR]`. It uses
-isolated `CODEX_HOME` directories, the same Terra model settings for both variants, and writes a
-per-task quality and token report. The baseline has no Scriptorium instructions or agents; the
-Scriptorium variant uses the installed normal profile and delegation setup. One run per task is
-directional evidence only, not a statistically significant result.
+The separate paid run, `./scripts/token-benchmark.sh run [OUTPUT_DIR]`, uses isolated `CODEX_HOME`
+directories, identical Terra settings, and writes per-task quality and token reports. The baseline
+has no Scriptorium instructions or agents; the Scriptorium variant uses the installed normal
+profile and delegation setup. One run per task is directional, not statistically significant.
 
 Use `./scripts/token-benchmark.sh run-one TASK VARIANT OUTPUT_DIR` for a single inexpensive
 regression check, for example with `02-config-path scriptorium`.
 
 ## Overlap policy
 
-Scriptorium installs the `reuse-first` skill and an AGENTS rule that makes Codex invoke it
-automatically before work that may duplicate existing behavior, ownership, helpers, services, or
-error handling. Codex then:
+Scriptorium installs `reuse-first` and an AGENTS rule that invokes it before work that may duplicate
+existing behavior, ownership, helpers, services, or error handling. Codex then:
 
 - searches for semantic analogs,
 - selects and reports one decision: `Reuse`, `Extend`, or `Create new`,
@@ -209,3 +205,10 @@ error handling. Codex then:
 Invoke it explicitly with `$reuse-first` when you want an audit or want to force this check before
 a task. Re-run `./install.sh --apply-saved` after updating Scriptorium to deploy the latest skill
 and AGENTS block.
+
+## Compact Markdown
+
+Scriptorium installs and uses `compact-markdown` by default for new Markdown and material prose
+edits. New files start compact; existing files keep untouched sections unless whole-file compaction
+is requested. It removes repetition and safely generalizes repeated examples while preserving
+contracts, exact literals, links, warnings, and Markdown structure.

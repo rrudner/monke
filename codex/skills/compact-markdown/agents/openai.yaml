@@ -1,0 +1,6 @@
+interface:
+  display_name: "Compact Markdown"
+  short_description: "Create dense Markdown without losing meaning"
+  default_prompt: "Use $compact-markdown to make this Markdown concise without losing required meaning or structure."
+policy:
+  allow_implicit_invocation: true

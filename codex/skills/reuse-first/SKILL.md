@@ -5,70 +5,41 @@ description: Prevent duplicate or parallel implementations by discovering semant
 
 # Reuse First
 
-Use this skill whenever requested work overlaps existing behavior, ownership, components, helpers,
-services, or error handling. Default to reuse or extend, then proceed only with the chosen path.
+Use this skill when work may overlap existing behavior or ownership. Default to reuse or extend;
+proceed only after choosing one path.
 
 ## Workflow
 
-### 1) Discover semantic analogs
+### Discover
 
-1. Search for functionally similar code and documentation first in the repository.
-   - Read only the smallest relevant files/symbols.
-   - Prefer `rg` (or equivalent) over broad scans.
-2. Build a concise candidate list with: location, purpose, and why it is semantically close.
-3. Ignore cosmetic similarity; prioritize behavior overlap and ownership.
-4. If analogs are uncertain, open only one additional file to confirm signatures/contracts.
+1. Search the smallest relevant repository scope for functionally similar code and docs, preferring
+   `rg` or equivalent.
+2. List each candidate's location, purpose, and behavioral or ownership overlap. Ignore cosmetic
+   similarity.
+3. If uncertain, inspect only enough extra context to confirm contracts and ownership.
 
-### 2) Decide strategy
+### Decide
 
-Choose exactly one mode before editing. Do not combine mode labels in one decision.
+Before editing, list any new owning symbols or modules and reject any that repeat responsibility.
+Shared formats, interfaces, names, or algorithms alone are not reuse. Choose exactly one mode:
 
-Apply this hard gate first:
+- **Reuse:** call, import, source, or compose the existing owner when behavior matches. Copying its
+  code or structure is duplication. Name affected adapters and contracts.
+- **Extend:** change the authoritative primitive when it is close but incomplete. If it cannot be
+  shared, extract one owner and migrate both consumers in this change; do not add a peer helper or
+  service with the same responsibility.
+- **Create new:** only for a distinct responsibility and ownership boundary. If overlap remains,
+  give the migration rationale and deprecation plan.
 
-- List the new owning symbols or modules the change would introduce.
-- Reject the decision if any would repeat an existing responsibility.
-- Reusing only a file format, interface shape, naming convention, or algorithm is not code reuse.
-- When equivalent implementations already exist, consolidate them or make the overlap an explicit
-  blocked dependency; do not add another copy.
+Report the mode, why it is safe, the authoritative owner after the change, and one rejected fallback.
+When overlap exists, consolidate now if in scope; otherwise block the duplicate and document a
+follow-up with owner, priority, migration target, and measurable acceptance criteria.
 
-1. Reuse
-   - Call, import, source, or compose the existing implementation when behavior matches.
-   - Copying an implementation or repeating its structure is not reuse.
-   - Cite minimal adapter points and tests/contracts affected.
-2. Extend
-   - Modify the authoritative primitive when reuse is close but incomplete.
-   - If the primitive is not shareable, extract one shared implementation and migrate both the
-     existing and new consumers to it in the same change.
-   - Do not add a local peer helper, parser, component, service, or state owner with overlapping
-     responsibility.
-3. Create new
-   - Use only when no safe reuse path exists.
-   - Require a distinct responsibility and ownership boundary, not merely a different location.
-   - Add explicit migration rationale and deprecation plan for overlapping pieces.
+### Audit
 
-Decision must include one selected mode, why it is safe, the authoritative implementation after
-the change, and one rejected fallback option.
-
-When overlap exists, proactively propose `$reuse-first` consolidation in the current change and block any duplicate by:
-
-- migrating one owner to the shared implementation when feasible,
-- or documenting a follow-up deprecation/migration plan when immediate consolidation is out of scope.
-
-### 3) Post-change audit
-
-After changes, perform a short local audit:
-
-1. Verify no two implementations solve the same responsibility.
-2. Flag duplicates and map a migration target for future cleanup.
-3. Add staged remediation plan with priority and owner if not immediate.
-4. Keep stack-specific guardrails in place (`language/framework` boundaries, shared error model, dependency policy).
-
-### 4) Remediation staging
-
-- Stage 1: lock in the chosen reuse/extend/new decision and document it in the same change.
-- Stage 2: add or update references to existing shared interfaces.
-- Stage 3: deprecate duplicate paths and provide migration steps, not broad rewrites.
-- Stage 4: if duplication remains, propose follow-up task with measurable acceptance criteria.
+- Verify one implementation owns each responsibility and stack boundaries remain intact.
+- If duplication remains, reference the shared interface, mark the duplicate for deprecation, and
+  provide scoped migration steps instead of a broad rewrite.
 
 ## References
 

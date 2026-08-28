@@ -8,6 +8,7 @@ state_file=$state_dir/update.state
 log_file=$state_dir/last-update.log
 deployed_file=$state_dir/deployed-commit
 mode=${1:-check}
+update_installed=0
 repo_dir_script=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 tools_manager=$repo_dir_script/tools-manager.sh
 source "$repo_dir_script/preferences.sh"
@@ -152,6 +153,7 @@ install_update() {
     current_commit=$(git -C "$repo_dir" rev-parse HEAD 2>>"$log_file")
     printf '%s\n' "$current_commit" >"$deployed_file"
     printf 'scodex: update installed %s\n' "${current_commit:0:8}"
+    update_installed=1
     if [[ -n $new_tools ]]; then
         printf 'scodex: new optional tools are available: %s\n' \
             "$(printf '%s\n' "$new_tools" | paste -sd, -)"
@@ -178,6 +180,9 @@ show_view() {
 
 if [[ $mode == apply ]]; then
     install_update
+    if (( update_installed == 1 )); then
+        exit 10
+    fi
     exit 0
 fi
 
@@ -191,6 +196,9 @@ if [[ -t 0 ]]; then
         case ${choice:-2} in
             1)
                 install_update
+                if (( update_installed == 1 )); then
+                    exit 10
+                fi
                 exit 0
                 ;;
             2|'')

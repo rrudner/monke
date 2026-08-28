@@ -403,7 +403,11 @@ case ${1:-} in
 esac
 
 if (( ! skip_update )) && [[ $(read_pref "$preferences_file" update_check "$(read_pref "$preferences_file" auto_update 1)") != 0 ]]; then
-    SCRIPTORIUM_MANUAL_UPDATE=1 "$repo_dir/scripts/update-repository.sh" check || true
+    update_status=0
+    SCRIPTORIUM_MANUAL_UPDATE=1 "$repo_dir/scripts/update-repository.sh" check || update_status=$?
+    if (( update_status == 10 )); then
+        exec "$launcher_dir/scodex" --no-update "$@"
+    fi
 fi
 load_tools_env
 

@@ -55,6 +55,7 @@ mkdir -p -- "$HOME/.config/scriptorium"
 cat >"$HOME/.config/scriptorium/preferences" <<EOF
 repo_dir=$work_base/local
 tmux=0
+tools=1
 update_check=1
 shell=bash
 shell_rc=
@@ -121,5 +122,16 @@ EOF
 chmod +x "$work_base/local/scripts/tools-manager.sh"
 CODEX_TEST_LOG=$test_root/tools.log "$repo_dir/bin/scodex" tools inspect >/dev/null
 grep -q 'inspect' "$test_root/tools.log"
+
+# A successful launch-time update restarts through the current launcher before Codex starts.
+cat >"$work_base/local/scripts/update-repository.sh" <<'EOF'
+#!/usr/bin/env bash
+printf 'update-check\n' >>"$CODEX_TEST_LOG"
+exit 10
+EOF
+chmod +x "$work_base/local/scripts/update-repository.sh"
+CODEX_TEST_LOG=$test_root/restart.log "$repo_dir/bin/scodex" normal >/dev/null
+grep -qx 'update-check' "$test_root/restart.log"
+[[ $(grep -c '^args:' "$test_root/restart.log") -eq 1 ]]
 
 printf 'smoke tests passed.\n'
