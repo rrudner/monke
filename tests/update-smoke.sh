@@ -93,7 +93,7 @@ grep -q 'monke: applying the updated configuration' "$test_root/update-output.lo
 grep -q 'monke: finalizing update' "$test_root/update-output.log"
 grep -qx 'tools=1' "$HOME/.config/monke/preferences"
 grep -qx 'developer_instructions=1' "$HOME/.config/monke/preferences"
-grep -Fxq "developer_instructions_file=$work_base/local/codex/developer-instructions.md" \
+grep -Fxq "developer_instructions_file=$work_base/local/codex/monke-personality.md" \
     "$HOME/.config/monke/preferences"
 grep -q $'^ripgrep\tsystem\t' "$HOME/.config/monke/tools.state"
 # Interactive restart reviews and clears the pending catalog migration.

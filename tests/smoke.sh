@@ -103,7 +103,7 @@ fi
 grep -qx 'update_check=1' "$test_root/home/.config/monke/preferences"
 grep -qx 'tools=0' "$test_root/home/.config/monke/preferences"
 grep -qx 'developer_instructions=1' "$test_root/home/.config/monke/preferences"
-grep -Fxq "developer_instructions_file=$repo_dir/codex/developer-instructions.md" \
+grep -Fxq "developer_instructions_file=$repo_dir/codex/monke-personality.md" \
     "$test_root/home/.config/monke/preferences"
 [[ -f "$test_root/home/.config/monke/tools.catalog-reviewed" ]]
 

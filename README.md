@@ -61,7 +61,7 @@ monke stats                   # Show readable token usage for the current projec
 | Codex profile | `~/.codex/monke.config.toml` | Monke-managed |
 | Codex instructions | `~/.codex/AGENTS.md` | Marker-managed block |
 | Codex skills | `~/.codex/skills/{compact-markdown,reuse-first,monke-delegate}` | Unchanged or backed up, then replaced |
-| Session instructions | `codex/developer-instructions.md` | Git-managed |
+| Monke personality | `codex/monke-personality.md` | Git-managed |
 | Shell hooks | User configuration files | Marker-managed blocks |
 | Optional tool data | Matching XDG data/cache/state directories | Isolated |
 | Project token statistics | `.monke/stats` in a launched project | Replaced after each completed `monke` run |
