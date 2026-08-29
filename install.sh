@@ -222,3 +222,6 @@ preferences_committed=0
 rm -f -- "$preferences_previous"
 trap - EXIT
 printf '\nScriptorium configured. Run scodex configure to change your choices.\n'
+if [[ $tools_choice == 1 ]]; then
+    "$repo_dir/scripts/tools-manager.sh" system-summary
+fi

@@ -8,7 +8,7 @@ trap 'rm -rf -- "$test_root"' EXIT
 work_base=$test_root/work
 mkdir -p -- "$work_base"
 mkdir -p -- "$work_base/bin"
-PATH=$work_base/bin:$PATH
+PATH=$work_base/bin:/usr/bin:/bin
 
 cat >"$work_base/bin/codex" <<'EOF'
 #!/usr/bin/env bash
@@ -121,6 +121,24 @@ EOF
 chmod +x "$work_base/local/scripts/tools-manager.sh"
 CODEX_TEST_LOG=$test_root/tools.log "$repo_dir/bin/scodex" tools inspect >/dev/null
 grep -q 'inspect' "$test_root/tools.log"
+
+# Interactive startup offers to replace managed tools when system copies appear.
+cat >"$work_base/local/scripts/tools-manager.sh" <<'EOF'
+#!/usr/bin/env bash
+case ${1:-} in
+    system-replacements) printf 'gh\n' ;;
+    adopt-system) printf 'adopt-system\n' >>"$CODEX_TEST_LOG" ;;
+    *) printf '%s\n' "$*" >>"$CODEX_TEST_LOG" ;;
+esac
+EOF
+chmod +x "$work_base/local/scripts/tools-manager.sh"
+printf '\n' | CODEX_TEST_LOG=$test_root/system-replacement.log \
+    script -qec "'$repo_dir/bin/scodex' --no-update normal" /dev/null \
+    >"$test_root/system-replacement-output.log"
+grep -q 'system copies now available for locally managed tools: gh' \
+    "$test_root/system-replacement-output.log"
+grep -qx adopt-system "$test_root/system-replacement.log"
+grep -q 'scodex: switched to the system versions' "$test_root/system-replacement-output.log"
 
 # A successful launch-time update restarts through the current launcher before Codex starts.
 cat >"$work_base/local/scripts/update-repository.sh" <<'EOF'

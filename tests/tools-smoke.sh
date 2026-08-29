@@ -14,7 +14,7 @@ EOF
     chmod +x "$test_root/bin/$command_name"
 done
 
-PATH="$test_root/bin:$PATH" HOME="$test_root/home" \
+PATH="$test_root/bin:/usr/bin:/bin" HOME="$test_root/home" \
     "$repo_dir/scripts/tools-manager.sh" configure \
     --select ripgrep,fd,jq,yq,shellcheck,shfmt,ast-grep,gh >"$test_root/configure.log"
 
@@ -34,11 +34,11 @@ grep -qx ast-grep "$test_root/home/.config/scriptorium/tools.catalog-reviewed"
 [[ ! -e $test_root/home/.local/state/scriptorium/tools-reconfigure-required ]]
 [[ ! -e $test_root/home/.local/share/scriptorium/runtime/mise ]]
 
-PATH="$test_root/bin:$PATH" HOME="$test_root/home" \
+PATH="$test_root/bin:/usr/bin:/bin" HOME="$test_root/home" \
     "$repo_dir/scripts/tools-manager.sh" status >"$test_root/status.log"
 grep -q '^ripgrep ' "$test_root/status.log"
 
-PATH="$test_root/bin:$PATH" HOME="$test_root/home" \
+PATH="$test_root/bin:/usr/bin:/bin" HOME="$test_root/home" \
     "$repo_dir/scripts/tools-manager.sh" remove gh >"$test_root/remove.log"
 ! grep -qx gh "$test_root/home/.config/scriptorium/tools.selected"
 [[ -x $test_root/bin/gh ]]
@@ -61,19 +61,47 @@ chmod +x "$runtime_dir/mise"
 export MISE_TEST_LOG=$test_root/mise.log
 shim_dir=$local_home/.local/share/scriptorium/mise/shims
 mkdir -p -- "$shim_dir"
-install_bin=$local_home/.local/share/scriptorium/mise/installs/ripgrep/1.2.3/bin
+install_bin=$local_home/.local/share/scriptorium/mise/installs/sops/1.2.3/bin
 mkdir -p -- "$install_bin"
-cat >"$install_bin/rg" <<'EOF'
+cat >"$install_bin/sops" <<'EOF'
 #!/usr/bin/env bash
-printf 'managed rg\n'
+printf 'managed sops\n'
 EOF
-chmod +x "$install_bin/rg"
+chmod +x "$install_bin/sops"
 PATH="$install_bin:$test_root/bin:/usr/bin:/bin" HOME="$local_home" \
-    "$repo_dir/scripts/tools-manager.sh" configure --select ripgrep \
-    >"$test_root/local-ripgrep-configure.log"
-grep -q $'^ripgrep\tlocal\t1.2.3\trg$' \
+    "$repo_dir/scripts/tools-manager.sh" configure --select sops \
+    >"$test_root/local-sops-configure.log"
+grep -q $'^sops\tlocal\t1.2.3\tsops$' \
     "$local_home/.config/scriptorium/tools.state"
 grep -q 'export PATH=.*mise/shims' "$local_home/.config/scriptorium/tools-env.sh"
+
+# A system command later in PATH must replace a previously managed copy.
+system_bin=$test_root/system-bin
+mkdir -p -- "$system_bin" "$shim_dir"
+cat >"$shim_dir/sops" <<'EOF'
+#!/usr/bin/env bash
+printf 'managed shim\n'
+EOF
+cat >"$system_bin/sops" <<'EOF'
+#!/usr/bin/env bash
+printf 'sops old-system-version\n'
+EOF
+chmod +x "$shim_dir/sops" "$system_bin/sops"
+PATH="$shim_dir:$system_bin:$test_root/bin:/usr/bin:/bin" HOME="$local_home" \
+    "$repo_dir/scripts/tools-manager.sh" system-replacements \
+    >"$test_root/system-replacements.log"
+grep -qx sops "$test_root/system-replacements.log"
+PATH="$shim_dir:$system_bin:$test_root/bin:/usr/bin:/bin" HOME="$local_home" \
+    "$repo_dir/scripts/tools-manager.sh" adopt-system \
+    >"$test_root/system-sops-configure.log"
+grep -q $'^sops\tsystem\tsops old-system-version *\tsops$' \
+    "$local_home/.config/scriptorium/tools.state"
+grep -q '^uninstall sops@1.2.3$' "$MISE_TEST_LOG"
+grep -q '^reshim$' "$MISE_TEST_LOG"
+! grep -q 'export PATH=.*mise/shims' "$local_home/.config/scriptorium/tools-env.sh"
+PATH="$shim_dir:$system_bin:$test_root/bin:/usr/bin:/bin" HOME="$local_home" \
+    "$repo_dir/scripts/tools-manager.sh" system-summary >"$test_root/system-summary.log"
+grep -q 'Already available on this machine:.*sops' "$test_root/system-summary.log"
 cat >"$shim_dir/just" <<'EOF'
 #!/usr/bin/env bash
 printf 'mise shim\n'
@@ -152,26 +180,27 @@ PATH="$old_node_bin:/usr/bin:/bin" HOME="$old_node_home" \
     "$repo_dir/scripts/tools-manager.sh" configure --select lighthouse \
     >"$test_root/old-node.log" 2>&1
 grep -qx lighthouse "$old_node_home/.config/scriptorium/tools.selected"
-[[ ! -s $old_node_home/.config/scriptorium/tools.state ]]
+! grep -q $'^lighthouse\t' "$old_node_home/.config/scriptorium/tools.state"
 grep -q 'Skipping lighthouse: Node.js 22 or newer is required.' "$test_root/old-node.log"
 
 # Users upgrading from a version without catalog-review state must be prompted for new defaults.
 legacy_home=$test_root/legacy-home
 mkdir -p -- "$legacy_home/.config/scriptorium"
 printf '%s\n' ripgrep fd jq yq shellcheck >"$legacy_home/.config/scriptorium/tools.selected"
-PATH="$test_root/bin:$PATH" HOME="$legacy_home" \
+PATH="$test_root/bin:/usr/bin:/bin" HOME="$legacy_home" \
     "$repo_dir/scripts/tools-manager.sh" reconcile
 [[ "$(cat "$legacy_home/.local/state/scriptorium/tools-reconfigure-required")" == \
     $'ast-grep\nshfmt' ]]
-printf '\n' | PATH="$test_root/bin:$PATH" HOME="$legacy_home" \
+printf '\n' | PATH="$test_root/bin:/usr/bin:/bin" HOME="$legacy_home" \
     script -qec "'$repo_dir/scripts/tools-manager.sh' configure --review ast-grep,shfmt" /dev/null \
     >"$test_root/legacy-configure.log"
 [[ ! -e $legacy_home/.local/state/scriptorium/tools-reconfigure-required ]]
 grep -qx ast-grep "$legacy_home/.config/scriptorium/tools.catalog-reviewed"
 grep -q 'New tools: ast-grep,shfmt' "$test_root/legacy-configure.log"
-grep -q 'ast-grep (new)' "$test_root/legacy-configure.log"
-grep -q 'shfmt (new)' "$test_root/legacy-configure.log"
-grep -qx ripgrep "$legacy_home/.config/scriptorium/tools.selected"
+! grep -q 'ast-grep (new)' "$test_root/legacy-configure.log"
+! grep -q 'shfmt (new)' "$test_root/legacy-configure.log"
+! grep -qx ripgrep "$legacy_home/.config/scriptorium/tools.selected"
+grep -q $'^ripgrep\tsystem\t' "$legacy_home/.config/scriptorium/tools.state"
 ! grep -qx ast-grep "$legacy_home/.config/scriptorium/tools.selected"
 ! grep -qx shfmt "$legacy_home/.config/scriptorium/tools.selected"
 
@@ -190,7 +219,7 @@ zeta	zeta	-	0	advanced	Zeta tool	Zeta
 beta	beta	-	0	advanced	Beta tool	Beta
 gamma	gamma	-	0	advanced	Gamma tool	Gamma
 EOF
-PATH="$test_root/bin:$PATH" HOME="$test_root/home" \
+PATH="$test_root/bin:/usr/bin:/bin" HOME="$test_root/home" \
     "$repo_dir/scripts/tools-manager.sh" catalog-diff "$catalog_before" "$catalog_after" 0 \
     | tee "$test_root/catalog-diff.log"
 [[ "$(cat "$test_root/catalog-diff.log")" == $'beta\ngamma' ]]
@@ -200,7 +229,7 @@ grep -qx gamma "$test_root/catalog-diff.log"
 cat >"$test_root/home/.local/state/scriptorium/tools-reconfigure-required" <<'EOF'
 ast-grep
 EOF
-PATH="$test_root/bin:$PATH" HOME="$test_root/home" \
+PATH="$test_root/bin:/usr/bin:/bin" HOME="$test_root/home" \
     "$repo_dir/scripts/tools-manager.sh" catalog-diff "$catalog_before" "$catalog_after" 1 \
     >"$test_root/catalog-diff-merge.log"
 grep -qx ast-grep "$test_root/home/.local/state/scriptorium/tools-reconfigure-required"
@@ -211,7 +240,7 @@ grep -qx gamma "$test_root/home/.local/state/scriptorium/tools-reconfigure-requi
 cat >"$test_root/home/.local/state/scriptorium/tools-reconfigure-required" <<'EOF'
 ast-grep
 EOF
-PATH="$test_root/bin:$PATH" HOME="$test_root/home" \
+PATH="$test_root/bin:/usr/bin:/bin" HOME="$test_root/home" \
     "$repo_dir/scripts/tools-manager.sh" catalog-diff "$catalog_before" "$catalog_after" 0 \
     >"$test_root/catalog-diff-disabled.log"
 [[ "$(cat "$test_root/home/.local/state/scriptorium/tools-reconfigure-required")" == $'ast-grep' ]]

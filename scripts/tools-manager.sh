@@ -117,21 +117,32 @@ mise_env() {
 }
 
 command_version() {
-    local command_name=$1 output
-    output=$($command_name --version 2>/dev/null | head -n 1 || true)
+    local command_path=$1 output
+    output=$("$command_path" --version 2>/dev/null | head -n 1 || true)
     [[ -n $output ]] || output=available
     printf '%s\n' "$output" | tr '\t\n' '  '
 }
 
 system_command_path() {
-    local command_name=$1 command_path
-    command_path=$(command -v "$command_name" 2>/dev/null || true)
-    [[ -n $command_path && $command_path != "$data_root/mise/"* ]] || return 1
-    printf '%s\n' "$command_path"
+    local command_name=$1 path_dir command_path
+    local -a path_dirs
+    IFS=: read -r -a path_dirs <<<"$PATH"
+    for path_dir in "${path_dirs[@]}"; do
+        path_dir=${path_dir:-.}
+        path_dir=$(cd -- "$path_dir" 2>/dev/null && pwd -P) || continue
+        [[ $path_dir == "$data_root/mise" || $path_dir == "$data_root/mise/"* ]] && continue
+        command_path=$path_dir/$command_name
+        [[ -f $command_path && -x $command_path ]] || continue
+        printf '%s\n' "$command_path"
+        return 0
+    done
+    return 1
 }
 
 write_runtime_files() {
-    local name command_name mise_id default tier label description when_to_use provider version local_installed=0
+    local include_system=${1:-1}
+    local name command_name mise_id default tier label description when_to_use provider version
+    local command_path previous_provider previous_version local_installed=0 managed_changed=0
     local node_version node_major required_node browser_required=0 browser_path playwright_installer
     local state_tmp config_tmp env_tmp capabilities_tmp
     state_tmp=$(mktemp "$config_root/.tools-state.XXXXXX")
@@ -146,14 +157,29 @@ write_runtime_files() {
     printf '%s\n' '### Available Scriptorium tools' >"$capabilities_tmp"
 
     while IFS=$'\t' read -r name command_name mise_id default tier label description when_to_use; do
-        selected "$name" || continue
-        if system_command_path "$command_name" >/dev/null; then
+        command_path=$(system_command_path "$command_name" 2>/dev/null || true)
+        if [[ -n $command_path && $include_system == 1 ]]; then
             provider=system
-            version=$(command_version "$command_name")
-        elif [[ $mise_id == - ]]; then
-            printf 'Skipping %s: it must already be installed.\n' "$name" >&2
-            continue
+            version=$(command_version "$command_path")
+            previous_provider=$(awk -F '\t' -v name="$name" '$1 == name {print $2}' \
+                "$state_file" 2>/dev/null || true)
+            previous_version=$(awk -F '\t' -v name="$name" '$1 == name {print $3}' \
+                "$state_file" 2>/dev/null || true)
+            if [[ $previous_provider == local && -n $previous_version && -x $mise_bin ]]; then
+                mise_env
+                if "$mise_bin" uninstall "$mise_id@$previous_version"; then
+                    managed_changed=1
+                else
+                    printf 'Could not remove the managed copy of %s; the system copy may remain shadowed.\n' \
+                        "$name" >&2
+                fi
+            fi
         else
+            selected "$name" || continue
+            if [[ $mise_id == - ]]; then
+                printf 'Skipping %s: it must already be installed.\n' "$name" >&2
+                continue
+            fi
             if [[ $mise_id == npm:* ]] && ! command -v node >/dev/null 2>&1; then
                 printf 'Skipping %s: Node.js is required for npm tools.\n' "$name" >&2
                 continue
@@ -210,9 +236,11 @@ write_runtime_files() {
     fi
 
     mv -- "$config_tmp" "$mise_config"
-    if (( local_installed )); then
+    if (( local_installed || managed_changed )); then
         mise_env
         "$mise_bin" reshim
+    fi
+    if (( local_installed )); then
         printf 'export MISE_DATA_DIR=%q\n' "$data_root/mise" >>"$env_tmp"
         printf 'export MISE_CACHE_DIR=%q\n' "$cache_root/mise" >>"$env_tmp"
         printf 'export MISE_STATE_DIR=%q\n' "$state_root/mise" >>"$env_tmp"
@@ -255,7 +283,8 @@ configure_text() {
         tr ',' '\n' <<<"$explicit" | sed '/^$/d' >"$chosen_tmp"
     else
         while IFS=$'\t' read -r name command_name mise_id default tier label description when_to_use; do
-            if [[ $tier == available-only ]] && ! command -v "$command_name" >/dev/null 2>&1; then
+            system_command_path "$command_name" >/dev/null && continue
+            if [[ $tier == available-only ]]; then
                 printf '%-12s unavailable (not installed): %s\n' "$label" "$description"
                 continue
             fi
@@ -277,15 +306,16 @@ configure_text() {
 
 configure_tui() {
     local review=${1:-0} new_names=${2:-}
-    local -a names labels descriptions commands defaults tiers marks enabled new_flags
+    local -a names=() labels=() descriptions=() commands=() defaults=() tiers=() marks=() enabled=() new_flags=()
     local name command_name mise_id default tier label description when_to_use index=0 key count line is_new
     while IFS=$'\t' read -r name command_name mise_id default tier label description when_to_use; do
+        system_command_path "$command_name" >/dev/null && continue
         names+=("$name"); commands+=("$command_name"); defaults+=("$default"); tiers+=("$tier")
         labels+=("$label"); descriptions+=("$description")
         is_new=0
         [[ ,$new_names, == *,$name,* ]] && is_new=1
         new_flags+=("$is_new")
-        if [[ $tier == available-only ]] && ! command -v "$command_name" >/dev/null 2>&1; then
+        if [[ $tier == available-only ]]; then
             marks+=(0); enabled+=(0)
         elif selected "$name" || [[ $review != 1 && $default == 1 ]]; then
             marks+=(1); enabled+=(1)
@@ -294,6 +324,13 @@ configure_tui() {
         fi
     done < <(catalog_rows)
     count=${#names[@]}
+    if (( count == 0 )); then
+        : >"$selected_file"
+        write_runtime_files
+        record_catalog_review
+        printf 'No missing optional tools to configure.\n'
+        return
+    fi
     printf '\033[?25l'
     trap 'printf "\033[?25h"' RETURN
     while true; do
@@ -342,6 +379,22 @@ status_tools() {
     while IFS=$'\t' read -r name provider version command_name; do
         printf '%-14s %-9s %-12s %s\n' "$name" "$provider" "$command_name" "$version"
     done <"$state_file"
+}
+
+system_summary() {
+    local names
+    names=$(awk -F '\t' '$2 == "system" {print $1}' "$state_file" 2>/dev/null | paste -sd, -)
+    [[ -z $names ]] || printf 'Already available on this machine: %s\n' "$names"
+}
+
+system_replacements() {
+    local name provider version command_name
+    [[ -s $state_file ]] || return 0
+    while IFS=$'\t' read -r name provider version command_name; do
+        [[ $provider == local ]] || continue
+        system_command_path "$command_name" >/dev/null && printf '%s\n' "$name"
+    done <"$state_file"
+    return 0
 }
 
 check_updates() {
@@ -396,7 +449,7 @@ case $action in
         ;;
     clear)
         : >"$selected_file"
-        write_runtime_files
+        write_runtime_files 0
         record_catalog_review
         ;;
     reconcile) reconcile_catalog ;;
@@ -406,6 +459,9 @@ case $action in
         ;;
     apply) write_runtime_files ;;
     status) status_tools ;;
+    system-summary) system_summary ;;
+    system-replacements) system_replacements ;;
+    adopt-system) write_runtime_files ;;
     check) check_updates ;;
     update) update_tools ;;
     remove) remove_tools "${1:-}" ;;

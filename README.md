@@ -142,9 +142,11 @@ command.
 | Lighthouse | Audit web performance, accessibility, SEO, and best practices (requires Node.js 22+) | Use for evidence-based audits of a rendered web page. | No |
 <!-- END GENERATED OPTIONAL TOOLS -->
 
-Optional tools are disabled by default. Once enabled, system commands win; missing tools install
+Optional tools are disabled by default. Once enabled, commands already available on the machine
+are used at any version and omitted from the installer selection. Missing selected tools install
 without administrator access through a pinned, checksum-verified, isolated mise runtime and run
-only inside `scodex`.
+only inside `scodex`. When a system copy appears later, interactive `scodex` startup offers to
+remove the managed copy; `scodex tools adopt-system` performs the same migration directly.
 
 Installing missing tools requires `curl` or `wget` and `sha256sum`. Repository updates never
 upgrade tools; `scodex` checks for local tool updates at most weekly and only displays a notice.

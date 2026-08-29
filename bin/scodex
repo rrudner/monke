@@ -78,6 +78,25 @@ review_pending_tools() {
     fi
 }
 
+review_system_tool_replacements() {
+    local tools_manager=$repo_dir/scripts/tools-manager.sh names answer
+    [[ -x $tools_manager && $(read_pref "$preferences_file" tools 0) == 1 ]] || return 0
+    names=$("$tools_manager" system-replacements | paste -sd, -)
+    [[ -n $names ]] || return 0
+    printf 'scodex: system copies now available for locally managed tools: %s\n' "$names"
+    if [[ -t 0 && -t 1 ]]; then
+        read -r -p 'Remove the local copies and use the system versions? [Y/n] ' answer
+        if [[ ${answer,,} != n && ${answer,,} != no ]]; then
+            "$tools_manager" adopt-system
+            "$repo_dir/codex/scripts/render-agents.sh"
+            load_tools_env
+            printf 'scodex: switched to the system versions\n'
+        fi
+    else
+        printf 'scodex: run `scodex tools adopt-system` to remove the local copies\n'
+    fi
+}
+
 valid_thread_id() {
     local thread_id=$1
     [[ ${#thread_id} -eq 36 && $thread_id != *[!0-9a-f-]* \
@@ -378,7 +397,7 @@ case ${1:-} in
             tools_action=${1:-status}
             "$tools_manager" "$@"
             case $tools_action in
-                configure|update|remove|clear)
+                configure|update|remove|clear|adopt-system)
                     "$repo_dir/codex/scripts/render-agents.sh"
                     ;;
             esac
@@ -414,6 +433,7 @@ load_tools_env
 tools_manager=$repo_dir/scripts/tools-manager.sh
 reconcile_tool_catalog
 review_pending_tools
+review_system_tool_replacements
 
 if [[ -x $tools_manager ]]; then
     "$tools_manager" check || true
