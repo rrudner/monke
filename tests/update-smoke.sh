@@ -58,6 +58,7 @@ tools=1
 update_check=1
 shell=bash
 shell_rc=
+developer_instructions_file=$work_base/local/.agents/skills/monke-language/SKILL.md
 EOF
 printf '%s\n' ripgrep fd jq yq shellcheck >"$HOME/.config/scriptorium/tools.selected"
 
@@ -92,7 +93,7 @@ grep -q 'scodex: applying the updated configuration' "$test_root/update-output.l
 grep -q 'scodex: finalizing update' "$test_root/update-output.log"
 grep -qx 'tools=1' "$HOME/.config/scriptorium/preferences"
 grep -qx 'developer_instructions=1' "$HOME/.config/scriptorium/preferences"
-grep -Fxq "developer_instructions_file=$work_base/local/.agents/skills/monke-language/SKILL.md" \
+grep -Fxq "developer_instructions_file=$work_base/local/codex/developer-instructions.md" \
     "$HOME/.config/scriptorium/preferences"
 grep -q $'^ripgrep\tsystem\t' "$HOME/.config/scriptorium/tools.state"
 # Interactive restart reviews and clears the pending catalog migration.

@@ -111,7 +111,11 @@ saved_shell=$(read_pref "$preferences_file" shell "${login_shell##*/}")
 saved_rc=$(read_pref "$preferences_file" shell_rc '')
 saved_developer_instructions=$(read_pref "$preferences_file" developer_instructions 1)
 saved_developer_instructions_file=$(read_pref "$preferences_file" developer_instructions_file \
-    "$repo_dir/.agents/skills/monke-language/SKILL.md")
+    "$repo_dir/codex/developer-instructions.md")
+legacy_developer_instructions_file="$repo_dir/.agents/skills/monke-language/SKILL.md"
+if [[ $saved_developer_instructions_file == "$legacy_developer_instructions_file" ]]; then
+    saved_developer_instructions_file="$repo_dir/codex/developer-instructions.md"
+fi
 shell_choice=${shell_choice:-$saved_shell}
 shell_rc=${shell_rc:-$saved_rc}
 developer_instructions_file_choice=${developer_instructions_file_choice:-$saved_developer_instructions_file}

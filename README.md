@@ -58,7 +58,7 @@ scodex stats                   # Show readable token usage for the current proje
 | Codex profile | `~/.codex/scriptorium.config.toml` | Scriptorium-managed |
 | Codex instructions | `~/.codex/AGENTS.md` | Marker-managed block |
 | Codex skills | `~/.codex/skills/{compact-markdown,reuse-first,scriptorium-delegate}` | Unchanged or backed up, then replaced |
-| Session instructions | `.agents/skills/monke-language/SKILL.md` | Git-managed |
+| Session instructions | `codex/developer-instructions.md` | Git-managed |
 | Shell hooks | User configuration files | Marker-managed blocks |
 | Optional tool data | Matching XDG data/cache/state directories | Isolated |
 | Project token statistics | `.scriptorium/stats` in a launched project | Replaced after each completed `scodex` run |
@@ -66,8 +66,8 @@ scodex stats                   # Show readable token usage for the current proje
 `scodex` loads its namespaced Sol profile, exposes only the selected tool environment, optionally
 checks for updates, then starts Codex. Your shell changes only through the selected small launcher.
 
-Each `scodex` session loads the repository's Monke instructions. The launcher removes `SKILL.md`
-frontmatter, passes its body through Codex's `developer_instructions` setting, identifies the
+Each `scodex` session loads the repository's Monke instructions and passes them through Codex's
+`developer_instructions` setting, identifies the
 session as Scriptorium, and reads it once. Use
 `scodex configure --developer-instructions-file /absolute/path/to/another/SKILL.md` to select any
 other instruction file, or `scodex configure --without-developer-instructions` to disable this

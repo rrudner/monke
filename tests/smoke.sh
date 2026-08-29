@@ -103,7 +103,7 @@ fi
 grep -qx 'update_check=1' "$test_root/home/.config/scriptorium/preferences"
 grep -qx 'tools=0' "$test_root/home/.config/scriptorium/preferences"
 grep -qx 'developer_instructions=1' "$test_root/home/.config/scriptorium/preferences"
-grep -Fxq "developer_instructions_file=$repo_dir/.agents/skills/monke-language/SKILL.md" \
+grep -Fxq "developer_instructions_file=$repo_dir/codex/developer-instructions.md" \
     "$test_root/home/.config/scriptorium/preferences"
 [[ -f "$test_root/home/.config/scriptorium/tools.catalog-reviewed" ]]
 

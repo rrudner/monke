@@ -457,7 +457,10 @@ codex_args=(
 developer_instructions_value=
 if [[ $(read_pref "$preferences_file" developer_instructions 1) != 0 ]]; then
     developer_instructions_file=$(read_pref "$preferences_file" \
-        developer_instructions_file "$repo_dir/.agents/skills/monke-language/SKILL.md")
+        developer_instructions_file "$repo_dir/codex/developer-instructions.md")
+    if [[ $developer_instructions_file == "$repo_dir/.agents/skills/monke-language/SKILL.md" ]]; then
+        developer_instructions_file="$repo_dir/codex/developer-instructions.md"
+    fi
     if load_developer_instructions "$developer_instructions_file"; then
         developer_instructions_toml=$(toml_basic_string "$developer_instructions_value")
         codex_args+=( -c "developer_instructions=$developer_instructions_toml" )
