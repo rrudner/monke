@@ -84,12 +84,8 @@ migrate_legacy_config() {
 mkdir -p -- "$codex_home" "$config_dir"
 migrate_legacy_config
 
-install_owned "$package_dir/profiles/scriptorium-cheap.config.toml" \
-    "$codex_home/scriptorium-cheap.config.toml"
-install_owned "$package_dir/profiles/scriptorium-normal.config.toml" \
-    "$codex_home/scriptorium-normal.config.toml"
-install_owned "$package_dir/profiles/scriptorium-hard.config.toml" \
-    "$codex_home/scriptorium-hard.config.toml"
+install_owned "$package_dir/profiles/scriptorium.config.toml" \
+    "$codex_home/scriptorium.config.toml"
 install_owned "$package_dir/agents/scriptorium-worker.toml" \
     "$codex_home/agents/scriptorium-worker.toml"
 install_owned "$package_dir/skills/scriptorium-delegate/SKILL.md" \
@@ -108,12 +104,21 @@ install_owned "$package_dir/skills/reuse-first/references/tooling.md" \
     "$codex_home/skills/reuse-first/references/tooling.md"
 
 legacy_profile=$(mktemp "$codex_home/.legacy-profile.XXXXXX")
+legacy_profile_model=$(mktemp "$codex_home/.legacy-profile-model.XXXXXX")
 for profile in cheap normal hard; do
+    case $profile in
+        cheap) profile_model='gpt-5.6-luna' ;;
+        normal) profile_model='gpt-5.6-terra' ;;
+        hard) profile_model='gpt-5.6-sol' ;;
+    esac
+    sed "s/^model = \".*\"/model = \"$profile_model\"/" \
+        "$package_dir/profiles/scriptorium.config.toml" >"$legacy_profile"
+    retire_if_identical "$codex_home/scriptorium-$profile.config.toml" "$legacy_profile"
     awk '/^model =/{emit=1} emit && NF==0{exit} emit{print}' \
-        "$package_dir/profiles/scriptorium-$profile.config.toml" >"$legacy_profile"
-    retire_if_identical "$codex_home/$profile.config.toml" "$legacy_profile"
+        "$legacy_profile" >"$legacy_profile_model"
+    retire_if_identical "$codex_home/$profile.config.toml" "$legacy_profile_model"
 done
-rm -f -- "$legacy_profile"
+rm -f -- "$legacy_profile" "$legacy_profile_model"
 
 legacy_agent=$(mktemp "$codex_home/.legacy-agent.XXXXXX")
 sed 's/^name = "scriptorium_worker"/name = "token_worker"/' \

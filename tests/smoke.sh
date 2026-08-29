@@ -7,7 +7,7 @@ trap 'rm -rf -- "$test_root"' EXIT
 mkdir -p -- "$test_root/bin" "$test_root/home/.codex"
 export XDG_STATE_HOME="$test_root/home/.local/state"
 
-bash -n "$repo_dir/install.sh" "$repo_dir/uninstall.sh" "$repo_dir/update.sh" "$repo_dir/bin/scodex" \
+bash -n "$repo_dir/install.sh" "$repo_dir/uninstall.sh" "$repo_dir/bin/scodex" \
     "$repo_dir"/scripts/*.sh "$repo_dir"/codex/scripts/*.sh "$repo_dir"/tests/*.sh
 
 bash "$repo_dir/tests/managed-block-smoke.sh"
@@ -29,9 +29,9 @@ CODEX_HOME="$test_root/home/.codex" \
 
 cmp -s "$test_root/original-config.toml" "$test_root/home/.codex/config.toml"
 grep -q '^model = "gpt-5.6-sol"$' \
-    "$test_root/home/.codex/scriptorium-hard.config.toml"
+    "$test_root/home/.codex/scriptorium.config.toml"
 grep -q '^default_subagent_model = "gpt-5.3-codex-spark"$' \
-    "$test_root/home/.codex/scriptorium-hard.config.toml"
+    "$test_root/home/.codex/scriptorium.config.toml"
 [[ -f "$test_root/home/.codex/skills/reuse-first/SKILL.md" ]]
 [[ -f "$test_root/home/.codex/skills/reuse-first/agents/openai.yaml" ]]
 [[ -f "$test_root/home/.codex/skills/reuse-first/references/tooling.md" ]]
@@ -58,6 +58,32 @@ fi
 grep -q 'Default to local work.' \
     "$test_root/home/.codex/skills/scriptorium-delegate/SKILL.md"
 grep -q '^alias user_command=true$' "$test_root/home/.bashrc"
+
+legacy_profile_home=$test_root/legacy-profile-home
+mkdir -p -- "$legacy_profile_home/.codex"
+cp -- "$test_root/home/.codex/scriptorium.config.toml" "$legacy_profile_home/.codex/scriptorium.config.toml"
+cp -- "$test_root/home/.codex/scriptorium.config.toml" "$legacy_profile_home/.codex/scriptorium-cheap.config.toml"
+cp -- "$test_root/home/.codex/scriptorium.config.toml" "$legacy_profile_home/.codex/scriptorium-normal.config.toml"
+cp -- "$test_root/home/.codex/scriptorium.config.toml" "$legacy_profile_home/.codex/scriptorium-hard.config.toml"
+sed -i 's/^model = "gpt-5.6-sol"/model = "gpt-5.6-luna"/' \
+    "$legacy_profile_home/.codex/scriptorium-cheap.config.toml"
+sed -i 's/^model = "gpt-5.6-sol"/model = "gpt-5.6-terra"/' \
+    "$legacy_profile_home/.codex/scriptorium-normal.config.toml"
+for profile in cheap normal hard; do
+    awk '/^model =/{emit=1} emit && NF==0{exit} emit{print}' \
+        "$legacy_profile_home/.codex/scriptorium-$profile.config.toml" \
+        >"$legacy_profile_home/.codex/$profile.config.toml"
+done
+PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$legacy_profile_home" \
+CODEX_HOME="$legacy_profile_home/.codex" \
+    "$repo_dir/install.sh" --without-tools --shell bash >"$test_root/legacy-profile-install.log"
+[[ ! -e $legacy_profile_home/.codex/cheap.config.toml ]]
+[[ ! -e $legacy_profile_home/.codex/normal.config.toml ]]
+[[ ! -e $legacy_profile_home/.codex/hard.config.toml ]]
+[[ ! -e $legacy_profile_home/.codex/scriptorium-cheap.config.toml ]]
+[[ ! -e $legacy_profile_home/.codex/scriptorium-normal.config.toml ]]
+[[ ! -e $legacy_profile_home/.codex/scriptorium-hard.config.toml ]]
+[[ -f $legacy_profile_home/.codex/scriptorium.config.toml ]]
 repo_pref_test=$test_root/home/.config/scriptorium/preferences-preferences-reader
 cat >"$repo_pref_test" <<'EOF'
 tools=0
@@ -230,7 +256,7 @@ CODEX_HOME="$uninstall_home/.codex" \
 ! grep -q '^# >>> scriptorium >>>$' "$uninstall_home/.bashrc"
 ! grep -q '^# >>> scriptorium >>>$' "$uninstall_home/.zshrc"
 ! grep -q '^# >>> scriptorium >>>$' "$uninstall_home/.customrc"
-[[ ! -e $uninstall_home/.codex/scriptorium-hard.config.toml ]]
+[[ ! -e $uninstall_home/.codex/scriptorium.config.toml ]]
 [[ ! -e $uninstall_home/.codex/skills/compact-markdown ]]
 [[ ! -e $uninstall_home/.codex/skills/reuse-first ]]
 [[ ! -e $uninstall_home/.local/bin/scodex ]]
@@ -247,7 +273,7 @@ CODEX_HOME="$cancel_home/.codex" \
     "$repo_dir/install.sh" --without-tools --shell bash >"$test_root/cancel-install.log"
 printf 'n\n' | PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$cancel_home" \
 CODEX_HOME="$cancel_home/.codex" "$repo_dir/uninstall.sh" --keep-repo >"$test_root/cancel.log"
-[[ -e $cancel_home/.codex/scriptorium-hard.config.toml ]]
+[[ -e $cancel_home/.codex/scriptorium.config.toml ]]
 grep -q '^<!-- >>> scriptorium >>> -->$' "$cancel_home/.codex/AGENTS.md"
 if ! PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$cancel_home" \
 CODEX_HOME="$cancel_home/.codex" "$repo_dir/uninstall.sh" --keep-repo \
@@ -255,18 +281,18 @@ CODEX_HOME="$cancel_home/.codex" "$repo_dir/uninstall.sh" --keep-repo \
     printf 'Expected EOF confirmation to cancel cleanly.\n' >&2
     exit 1
 fi
-[[ -e $cancel_home/.codex/scriptorium-hard.config.toml ]]
+[[ -e $cancel_home/.codex/scriptorium.config.toml ]]
 
 modified_home=$test_root/modified-home
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$modified_home" \
 CODEX_HOME="$modified_home/.codex" \
     "$repo_dir/install.sh" --without-tools --shell bash >"$test_root/modified-install.log"
-printf '# user modification\n' >>"$modified_home/.codex/scriptorium-hard.config.toml"
+printf '# user modification\n' >>"$modified_home/.codex/scriptorium.config.toml"
 printf '# user modification\n' >>"$modified_home/.codex/skills/compact-markdown/SKILL.md"
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$modified_home" \
 CODEX_HOME="$modified_home/.codex" \
     "$repo_dir/uninstall.sh" --yes --keep-repo >"$test_root/modified-uninstall.log"
-grep -q '^# user modification$' "$modified_home/.codex/scriptorium-hard.config.toml"
+grep -q '^# user modification$' "$modified_home/.codex/scriptorium.config.toml"
 grep -q '^# user modification$' \
     "$modified_home/.codex/skills/compact-markdown/SKILL.md"
 
@@ -281,7 +307,7 @@ CODEX_HOME="$marker_refusal_home/.codex" \
     printf 'Expected invalid markers to stop uninstall.\n' >&2
     exit 1
 fi
-[[ -e $marker_refusal_home/.codex/scriptorium-hard.config.toml ]]
+[[ -e $marker_refusal_home/.codex/scriptorium.config.toml ]]
 
 path_refusal_home=$test_root/path-refusal-home
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$path_refusal_home" \
@@ -295,15 +321,18 @@ CODEX_HOME="$path_refusal_home/.codex" \
     printf 'Expected symbolic-link path to stop uninstall.\n' >&2
     exit 1
 fi
-[[ -e $path_refusal_home/.codex/scriptorium-hard.config.toml ]]
+[[ -e $path_refusal_home/.codex/scriptorium.config.toml ]]
 
 repo_remove_home=$test_root/repo-remove-home
 repo_remove_dir=$repo_remove_home/.local/share/scriptorium/repo
 mkdir -p -- "$(dirname -- "$repo_remove_dir")"
 git clone -q -- "$repo_dir" "$repo_remove_dir"
-cp -- "$repo_dir/uninstall.sh" "$repo_remove_dir/uninstall.sh"
+cp -- "$repo_dir/install.sh" "$repo_dir/uninstall.sh" "$repo_remove_dir/"
+cp -- "$repo_dir/codex/scripts/install-codex.sh" "$repo_remove_dir/codex/scripts/install-codex.sh"
+rm -f -- "$repo_remove_dir"/codex/profiles/scriptorium-{cheap,normal,hard}.config.toml
+cp -- "$repo_dir/codex/profiles/scriptorium.config.toml" "$repo_remove_dir/codex/profiles/"
 chmod 700 -- "$repo_remove_dir/uninstall.sh"
-git -C "$repo_remove_dir" add -- uninstall.sh
+git -C "$repo_remove_dir" add -A
 git -C "$repo_remove_dir" -c user.name=Smoke -c user.email=smoke@example.invalid \
     commit --allow-empty -qm 'Add uninstall fixture'
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$repo_remove_home" \

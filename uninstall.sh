@@ -131,8 +131,10 @@ for target in \
     "$state_dir/last-update.log" "$state_dir/update.lock" "$state_dir/tools-update-check" \
     "$state_dir/tools-reconfigure-required" \
     "$data_dir/repo" "$data_dir/runtime" "$data_dir/mise" "$cache_dir/mise" "$state_dir/mise" \
-    "$bin_dir/scodex" "$bin_dir/scriptorium-preferences.sh" "$codex_home/scriptorium-cheap.config.toml" \
-    "$codex_home/scriptorium-normal.config.toml" "$codex_home/scriptorium-hard.config.toml" \
+    "$bin_dir/scodex" "$bin_dir/scriptorium-preferences.sh" "$codex_home/scriptorium.config.toml" \
+    "$codex_home/scriptorium-cheap.config.toml" "$codex_home/scriptorium-normal.config.toml" \
+    "$codex_home/scriptorium-hard.config.toml" "$codex_home/cheap.config.toml" "$codex_home/normal.config.toml" \
+    "$codex_home/hard.config.toml" \
     "$codex_home/agents/scriptorium-worker.toml" \
     "$codex_home/skills/scriptorium-delegate/SKILL.md" \
     "$codex_home/skills/scriptorium-delegate/agents/openai.yaml" \
@@ -171,12 +173,25 @@ for target in "${shell_targets[@]}"; do
     remove_managed_block "$target" '# >>> scriptorium >>>' '# <<< scriptorium <<<'
 done
 
-remove_if_identical "$codex_home/scriptorium-cheap.config.toml" \
-    "$repo_dir/codex/profiles/scriptorium-cheap.config.toml" 'Codex profile'
-remove_if_identical "$codex_home/scriptorium-normal.config.toml" \
-    "$repo_dir/codex/profiles/scriptorium-normal.config.toml" 'Codex profile'
-remove_if_identical "$codex_home/scriptorium-hard.config.toml" \
-    "$repo_dir/codex/profiles/scriptorium-hard.config.toml" 'Codex profile'
+remove_if_identical "$codex_home/scriptorium.config.toml" \
+    "$repo_dir/codex/profiles/scriptorium.config.toml" 'Codex profile'
+legacy_profile=$(mktemp "$codex_home/.legacy-profile.XXXXXX")
+legacy_profile_model=$(mktemp "$codex_home/.legacy-profile-model.XXXXXX")
+for profile in cheap normal hard; do
+    case $profile in
+        cheap) profile_model='gpt-5.6-luna' ;;
+        normal) profile_model='gpt-5.6-terra' ;;
+        hard) profile_model='gpt-5.6-sol' ;;
+    esac
+    sed "s/^model = \".*\"/model = \"$profile_model\"/" \
+        "$repo_dir/codex/profiles/scriptorium.config.toml" \
+        >"$legacy_profile"
+    remove_if_identical "$codex_home/scriptorium-$profile.config.toml" "$legacy_profile" 'Codex legacy profile'
+    awk '/^model =/{emit=1} emit && NF==0{exit} emit{print}' \
+        "$legacy_profile" >"$legacy_profile_model"
+    remove_if_identical "$codex_home/$profile.config.toml" "$legacy_profile_model" 'Codex legacy profile'
+done
+rm -f -- "$legacy_profile" "$legacy_profile_model"
 remove_if_identical "$codex_home/agents/scriptorium-worker.toml" \
     "$repo_dir/codex/agents/scriptorium-worker.toml" 'Codex agent'
 remove_if_identical "$codex_home/skills/scriptorium-delegate/SKILL.md" \

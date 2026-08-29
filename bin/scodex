@@ -374,12 +374,8 @@ case ${1:-} in
         exit 0
         ;;
     update)
-        SCRIPTORIUM_MANUAL_UPDATE=1 \
-            SCRIPTORIUM_SKIP_SNOOZE_CHECK=1 \
-            "$repo_dir/scripts/update-repository.sh" apply || true
-        reconcile_tool_catalog
-        review_pending_tools
-        exit 0
+        printf 'scodex: `scodex update` was removed; start scodex in a terminal to install updates.\n' >&2
+        exit 2
         ;;
     configure)
         shift
@@ -394,6 +390,10 @@ case ${1:-} in
         shift
         tools_manager=$repo_dir/scripts/tools-manager.sh
         if [[ -x $tools_manager ]]; then
+            if [[ ${1:-} == status ]]; then
+                printf 'scodex: `scodex tools status` was removed; use `scodex tools`.\n' >&2
+                exit 2
+            fi
             tools_action=${1:-status}
             "$tools_manager" "$@"
             case $tools_action in
@@ -408,24 +408,25 @@ case ${1:-} in
         ;;
 esac
 
-skip_update=0
-if [[ ${1:-} == --no-update ]]; then
-    skip_update=1
-    shift
-fi
-
-profile=hard
 case ${1:-} in
-    --cheap|cheap) profile=cheap; shift ;;
-    --normal|normal) profile=normal; shift ;;
-    --hard|hard) profile=hard; shift ;;
+    --no-update)
+        printf 'scodex: `--no-update` was removed; configure update checks with `scodex configure`.\n' >&2
+        exit 2
+        ;;
+    --cheap|cheap|--normal|normal|--hard|hard)
+        printf 'scodex: profile selectors were removed; scodex always uses Sol.\n' >&2
+        exit 2
+        ;;
 esac
 
-if (( ! skip_update )) && [[ $(read_pref "$preferences_file" update_check "$(read_pref "$preferences_file" auto_update 1)") != 0 ]]; then
+skip_update=${SCRIPTORIUM_INTERNAL_SKIP_UPDATE_CHECK:-0}
+unset SCRIPTORIUM_INTERNAL_SKIP_UPDATE_CHECK
+if [[ $skip_update != 1 ]] && [[ $(read_pref "$preferences_file" update_check "$(read_pref "$preferences_file" auto_update 1)") != 0 ]]; then
     update_status=0
-    SCRIPTORIUM_MANUAL_UPDATE=1 "$repo_dir/scripts/update-repository.sh" check || update_status=$?
+    SCRIPTORIUM_LAUNCH_UPDATE=1 "$repo_dir/scripts/update-repository.sh" || update_status=$?
     if (( update_status == 10 )); then
-        exec "$launcher_dir/scodex" --no-update "$@"
+        export SCRIPTORIUM_INTERNAL_SKIP_UPDATE_CHECK=1
+        exec "$launcher_dir/scodex" "$@"
     fi
 fi
 load_tools_env
@@ -449,7 +450,7 @@ project_dir=$PWD
 status=0
 shell_path=$(toml_basic_string "$PATH")
 codex_args=(
-    --profile "scriptorium-$profile"
+    --profile scriptorium
     -c shell_environment_policy.inherit=all
     -c "shell_environment_policy.set.PATH=$shell_path"
 )

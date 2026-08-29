@@ -112,17 +112,36 @@ enabled = false
 EOF
 }
 
+write_scriptorium_benchmark_profile() {
+    local target=$1
+    cat >"$target" <<'EOF'
+approval_policy = "on-request"
+approvals_reviewer = "auto_review"
+sandbox_mode = "workspace-write"
+model = "gpt-5.6-terra"
+model_reasoning_effort = "low"
+model_reasoning_summary = "none"
+model_verbosity = "low"
+EOF
+}
+
+write_benchmark_preferences() {
+    local run_dir=$1
+    mkdir -p -- "$run_dir/xdg-config/scriptorium"
+    printf 'update_check=0\n' >"$run_dir/xdg-config/scriptorium/preferences"
+}
+
 prepare_codex_homes() {
     local run_dir=$1
     local baseline_home=$run_dir/homes/baseline scriptorium_home=$run_dir/homes/scriptorium
     mkdir -p -- "$baseline_home" "$scriptorium_home/agents" \
         "$scriptorium_home/skills/scriptorium-delegate"
+    write_benchmark_preferences "$run_dir"
     link_auth "$baseline_home"
     link_auth "$scriptorium_home"
     write_baseline_profile "$baseline_home"
     cp -- "$repo_dir/codex/AGENTS.md" "$scriptorium_home/AGENTS.md"
-    cp -- "$repo_dir/codex/profiles/scriptorium-normal.config.toml" \
-        "$scriptorium_home/scriptorium-normal.config.toml"
+    write_scriptorium_benchmark_profile "$scriptorium_home/scriptorium.config.toml"
     cp -- "$repo_dir/codex/agents/scriptorium-worker.toml" \
         "$scriptorium_home/agents/scriptorium-worker.toml"
     cp -- "$repo_dir/codex/skills/scriptorium-delegate/SKILL.md" \
@@ -235,7 +254,7 @@ run_one() {
             --output-last-message "$message" - <"$prompt" >"$events" 2>"$events.stderr" || status=$?
     else
         CODEX_HOME=$codex_home XDG_CONFIG_HOME=$run_dir/xdg-config \
-            "$repo_dir/bin/scodex" --no-update normal exec -C "$work" "${sandbox_args[@]}" --json \
+            "$repo_dir/bin/scodex" exec -C "$work" "${sandbox_args[@]}" --json \
             --output-last-message "$message" - <"$prompt" >"$events" 2>"$events.stderr" || status=$?
     fi
     duration=$(( $(date +%s) - duration_start ))

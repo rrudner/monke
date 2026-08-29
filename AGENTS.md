@@ -21,7 +21,7 @@
 
 ## Verification
 
-- Run `bash -n install.sh update.sh bin/scodex scripts/*.sh codex/scripts/*.sh tests/*.sh` after
+- Run `bash -n install.sh bin/scodex scripts/*.sh codex/scripts/*.sh tests/*.sh` after
   shell changes.
 - Run `./tests/smoke.sh` after installer, updater, preference, or Codex merge changes.
 - Before finishing, check changed files for home data, credentials, generated archives, and

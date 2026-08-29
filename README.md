@@ -39,22 +39,12 @@ changed.
 ## Everyday commands
 
 ```bash
-scodex                         # Start with the default Sol profile
-scodex --cheap                 # Luna profile
-scodex --normal                # Terra profile
-scodex --hard                  # Sol profile
-scodex --no-update             # Skip one repository update check
-
-scodex update                  # Install the available repository update
+scodex                         # Start with the Sol profile
 scodex configure               # Change saved integration choices
-scodex configure --developer-instructions-file ~/my-skill/SKILL.md
-scodex configure --without-developer-instructions
 scodex uninstall --keep-repo   # Remove integration and keep this repository
 scodex tools configure         # Select optional tools in a terminal UI
-scodex tools status            # Show active tools and their providers
 scodex tools update            # Update locally managed tools
 scodex tools remove NAME       # Remove a tool from the selection
-scodex context                 # Show current main-context pressure for diagnostics
 scodex stats                   # Show readable token usage for the current project
 ```
 
@@ -65,7 +55,7 @@ scodex stats                   # Show readable token usage for the current proje
 | Repository | `~/.local/share/scriptorium/repo` | Git-managed |
 | Preferences | `~/.config/scriptorium/preferences` | Scriptorium-managed |
 | Launcher helper | `~/.local/bin/scriptorium-preferences.sh` | Scriptorium-managed |
-| Codex profiles | `~/.codex/scriptorium-*.config.toml` | Scriptorium-managed |
+| Codex profile | `~/.codex/scriptorium.config.toml` | Scriptorium-managed |
 | Codex instructions | `~/.codex/AGENTS.md` | Marker-managed block |
 | Codex skills | `~/.codex/skills/{compact-markdown,reuse-first,scriptorium-delegate}` | Unchanged or backed up, then replaced |
 | Session instructions | `.agents/skills/monke-language/SKILL.md` | Git-managed |
@@ -73,7 +63,7 @@ scodex stats                   # Show readable token usage for the current proje
 | Optional tool data | Matching XDG data/cache/state directories | Isolated |
 | Project token statistics | `.scriptorium/stats` in a launched project | Replaced after each completed `scodex` run |
 
-`scodex` loads a namespaced Codex profile, exposes only the selected tool environment, optionally
+`scodex` loads its namespaced Sol profile, exposes only the selected tool environment, optionally
 checks for updates, then starts Codex. Your shell changes only through the selected small launcher.
 
 Each `scodex` session loads the repository's Monke instructions. The launcher removes `SKILL.md`
@@ -180,9 +170,9 @@ Prepare and inspect the six-task Codex versus Scriptorium pilot without using mo
 ```
 
 The separate paid run, `./scripts/token-benchmark.sh run [OUTPUT_DIR]`, uses isolated `CODEX_HOME`
-directories, identical Terra settings, and writes per-task quality and token reports. The baseline
-has no Scriptorium instructions or agents; the Scriptorium variant uses the installed normal
-profile and delegation setup. One run per task is directional, not statistically significant.
+directories, identical benchmark-only Terra settings, and writes per-task quality and token
+reports. The baseline has no Scriptorium instructions or agents; the Scriptorium variant adds the
+delegation setup. One run per task is directional, not statistically significant.
 
 Use `./scripts/token-benchmark.sh run-one TASK VARIANT OUTPUT_DIR` for a single inexpensive
 regression check, for example with `02-config-path scriptorium`.

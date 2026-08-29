@@ -22,12 +22,12 @@ chmod +x "$work_base/bin/codex"
 
 export PATH
 
-bash -n "$repo_dir/install.sh" "$repo_dir/update.sh" "$repo_dir"/scripts/*.sh \
+bash -n "$repo_dir/install.sh" "$repo_dir"/scripts/*.sh \
     "$repo_dir"/codex/scripts/*.sh "$repo_dir"/tests/update-smoke.sh
 
 git_work=$work_base/source
 mkdir -p -- "$git_work"
-cp -a -- "$repo_dir/install.sh" "$repo_dir/update.sh" "$repo_dir/AGENTS.md" "$repo_dir/README.md" \
+cp -a -- "$repo_dir/install.sh" "$repo_dir/AGENTS.md" "$repo_dir/README.md" \
     "$repo_dir/.agents" "$repo_dir/bin" "$repo_dir/codex" "$repo_dir/scripts" \
     "$repo_dir/tools" "$repo_dir/tests" "$git_work"/
 git -C "$git_work" init -q -b main
@@ -63,20 +63,20 @@ printf '%s\n' ripgrep fd jq yq shellcheck >"$HOME/.config/scriptorium/tools.sele
 
 export CODEX_TEST_LOG=$codex_log
 
-# scodex should continue even when update check is unavailable without SCRIPTORIUM_MANUAL_UPDATE
+# The repository updater runs only through the launcher.
 "$repo_dir/scripts/update-repository.sh" >"$test_root/login-update.log"
 [[ ! -s "$test_root/login-update.log" ]]
 
 # launch path should invoke codex even when updates are available
 before=$(git -C "$work_base/local" rev-parse HEAD)
-"$repo_dir/bin/scodex" normal >/dev/null
+"$repo_dir/bin/scodex" >/dev/null
 [[ -s "$codex_log" ]]
-grep -q '^args:--profile scriptorium-normal -c shell_environment_policy.inherit=all -c shell_environment_policy.set.PATH="' \
+grep -q '^args:--profile scriptorium -c shell_environment_policy.inherit=all -c shell_environment_policy.set.PATH="' \
     "$codex_log"
 
-# explicit update should apply remote changes and continue to updated state
-CODEX_TEST_LOG=$test_root/update-call.log "$repo_dir/bin/scodex" update \
-    >"$test_root/update-output.log"
+# Interactive startup should apply an update, restart once, and continue to Codex.
+printf '1\n\n' | CODEX_TEST_LOG=$test_root/update-call.log \
+    script -qec "'$repo_dir/bin/scodex'" /dev/null >"$test_root/update-output.log"
 after=$(git -C "$work_base/local" rev-parse HEAD)
 if [[ "$before" == "$after" ]]; then
     printf 'update did not apply\n' >&2
@@ -87,31 +87,21 @@ if ! grep -q 'new optional tools are available: future-tool' "$test_root/update-
     head -20 "$test_root/update-output.log" >&2
     exit 1
 fi
-grep -q '^scodex: downloading repository update$' "$test_root/update-output.log"
-grep -q '^scodex: applying the updated configuration$' "$test_root/update-output.log"
-grep -q '^scodex: finalizing update$' "$test_root/update-output.log"
+grep -q 'scodex: downloading repository update' "$test_root/update-output.log"
+grep -q 'scodex: applying the updated configuration' "$test_root/update-output.log"
+grep -q 'scodex: finalizing update' "$test_root/update-output.log"
 grep -qx 'tools=1' "$HOME/.config/scriptorium/preferences"
 grep -qx 'developer_instructions=1' "$HOME/.config/scriptorium/preferences"
 grep -Fxq "developer_instructions_file=$work_base/local/.agents/skills/monke-language/SKILL.md" \
     "$HOME/.config/scriptorium/preferences"
-grep -qx 'ripgrep' "$HOME/.config/scriptorium/tools.selected"
-grep -qx 'future-tool' \
-    "$HOME/.local/state/scriptorium/tools-reconfigure-required"
-grep -qx 'ast-grep' \
-    "$HOME/.local/state/scriptorium/tools-reconfigure-required"
-
-# Non-interactive launches report the exact additions without clearing the pending review.
-CODEX_TEST_LOG=$test_root/pending-launch.log "$repo_dir/bin/scodex" normal \
-    >"$test_root/pending-output.log"
-grep -q 'new optional tools require your selection: ast-grep,future-tool' \
-    "$test_root/pending-output.log"
-grep -qx 'future-tool' \
-    "$HOME/.local/state/scriptorium/tools-reconfigure-required"
-
-# an explicit selection clears the pending catalog migration
-CODEX_TEST_LOG=$test_root/reselect.log "$repo_dir/bin/scodex" tools configure \
-    --select ripgrep >/dev/null
+grep -q $'^ripgrep\tsystem\t' "$HOME/.config/scriptorium/tools.state"
+# Interactive restart reviews and clears the pending catalog migration.
 [[ ! -e $HOME/.local/state/scriptorium/tools-reconfigure-required ]]
+! grep -qx future-tool "$HOME/.config/scriptorium/tools.selected"
+
+# The short tools command remains the public status view.
+"$repo_dir/bin/scodex" tools >"$test_root/tools-status.log"
+grep -q '^ripgrep ' "$test_root/tools-status.log"
 
 # tools delegation when tools manager is present
 cat > "$work_base/local/scripts/tools-manager.sh" <<'EOF'
@@ -133,7 +123,7 @@ esac
 EOF
 chmod +x "$work_base/local/scripts/tools-manager.sh"
 printf '\n' | CODEX_TEST_LOG=$test_root/system-replacement.log \
-    script -qec "'$repo_dir/bin/scodex' --no-update normal" /dev/null \
+    script -qec "'$repo_dir/bin/scodex'" /dev/null \
     >"$test_root/system-replacement-output.log"
 grep -q 'system copies now available for locally managed tools: gh' \
     "$test_root/system-replacement-output.log"
@@ -147,8 +137,32 @@ printf 'update-check\n' >>"$CODEX_TEST_LOG"
 exit 10
 EOF
 chmod +x "$work_base/local/scripts/update-repository.sh"
-CODEX_TEST_LOG=$test_root/restart.log "$repo_dir/bin/scodex" normal >/dev/null
+CODEX_TEST_LOG=$test_root/restart.log "$repo_dir/bin/scodex" >/dev/null
 grep -qx 'update-check' "$test_root/restart.log"
 [[ $(grep -c '^args:' "$test_root/restart.log") -eq 1 ]]
+
+# Removed public aliases fail before Codex starts.
+for removed in --cheap cheap --normal normal --hard hard --no-update update; do
+    set +e
+    CODEX_TEST_LOG=$test_root/removed.log "$repo_dir/bin/scodex" "$removed" \
+        >"$test_root/removed-output.log" 2>&1
+    removed_status=$?
+    set -e
+    [[ $removed_status -eq 2 ]]
+done
+set +e
+CODEX_TEST_LOG=$test_root/removed.log "$repo_dir/bin/scodex" tools status \
+    >"$test_root/removed-output.log" 2>&1
+removed_status=$?
+set -e
+[[ $removed_status -eq 2 ]]
+for removed in --with-auto-update --without-auto-update --no-package-install; do
+    set +e
+    HOME=$test_root/removed-home "$repo_dir/install.sh" "$removed" \
+        >"$test_root/removed-output.log" 2>&1
+    removed_status=$?
+    set -e
+    [[ $removed_status -eq 2 ]]
+done
 
 printf 'smoke tests passed.\n'

@@ -7,13 +7,12 @@ preferences_file=$config_dir/preferences
 state_file=$state_dir/update.state
 log_file=$state_dir/last-update.log
 deployed_file=$state_dir/deployed-commit
-mode=${1:-check}
 update_installed=0
 repo_dir_script=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 tools_manager=$repo_dir_script/tools-manager.sh
 source "$repo_dir_script/preferences.sh"
 
-if [[ ${SCRIPTORIUM_MANUAL_UPDATE:-0} != 1 ]]; then
+if [[ ${SCRIPTORIUM_LAUNCH_UPDATE:-0} != 1 ]]; then
     # keep login hook from checking updates; updates are now handled through scodex launch
     exit 0
 fi
@@ -108,13 +107,11 @@ if [[ $current_commit == "$remote_commit" ]]; then
     exit 0
 fi
 
-if [[ $mode == check && ${SCRIPTORIUM_SKIP_SNOOZE_CHECK:-0} != 1 ]]; then
-    now=$(date +%s)
-    snooze_until=$(read_state update_snooze_until || true)
-    snoozed_commit=$(read_state update_snoozed_commit || true)
-    if [[ $snoozed_commit == "$remote_commit" && -n $snooze_until && $now -lt $snooze_until ]]; then
-        exit 0
-    fi
+now=$(date +%s)
+snooze_until=$(read_state update_snooze_until || true)
+snoozed_commit=$(read_state update_snoozed_commit || true)
+if [[ $snoozed_commit == "$remote_commit" && -n $snooze_until && $now -lt $snooze_until ]]; then
+    exit 0
 fi
 
 if ! git -C "$repo_dir" merge-base --is-ancestor "$current_commit" "$remote_commit"; then
@@ -144,7 +141,7 @@ install_update() {
     new_tools=$("$tools_manager" catalog-diff "$catalog_before" "$repo_dir/tools/catalog.tsv" "$merge_pending")
     rm -f -- "$catalog_before"
     if ! run_logged_with_heartbeat 'applying the updated configuration' \
-        "$repo_dir/install.sh" --apply-saved --no-package-install; then
+        "$repo_dir/install.sh" --apply-saved; then
         log "install failed"
         printf 'scodex: install failed, continuing codex\n'
         return 0
@@ -178,14 +175,6 @@ show_view() {
         "$current_commit".."$remote_commit" || true
 }
 
-if [[ $mode == apply ]]; then
-    install_update
-    if (( update_installed == 1 )); then
-        exit 10
-    fi
-    exit 0
-fi
-
 if [[ -t 0 ]]; then
     while true; do
         printf 'A Scriptorium update is available.\n'
@@ -214,5 +203,5 @@ if [[ -t 0 ]]; then
     done
 fi
 
-printf 'scodex: update available, run `scodex update` to install\n'
+printf 'scodex: update available; start scodex in a terminal to install it\n'
 exit 0

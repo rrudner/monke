@@ -23,7 +23,6 @@ usage() {
 Usage: ./install.sh [options]
 
   --with-update-check | --without-update-check
-  --with-auto-update | --without-auto-update   Legacy aliases
   --with-tools | --without-tools
   --tools NAME[,NAME...]                       Non-interactive tool selection
   --shell bash|zsh|fish
@@ -31,7 +30,6 @@ Usage: ./install.sh [options]
   --developer-instructions-file PATH           Load session instructions from PATH
   --without-developer-instructions              Disable session instructions
   --apply-saved                                Reapply saved choices
-  --no-package-install                         Accepted legacy no-op
   -h, --help
 EOF
 }
@@ -52,8 +50,16 @@ prompt_boolean() {
 
 while (($#)); do
     case $1 in
-        --with-update-check|--with-auto-update) update_choice=1; mode=flags ;;
-        --without-update-check|--without-auto-update) update_choice=0; mode=flags ;;
+        --with-update-check) update_choice=1; mode=flags ;;
+        --without-update-check) update_choice=0; mode=flags ;;
+        --with-auto-update)
+            printf '%s\n' 'Removed option: --with-auto-update; use --with-update-check.' >&2
+            exit 2
+            ;;
+        --without-auto-update)
+            printf '%s\n' 'Removed option: --without-auto-update; use --without-update-check.' >&2
+            exit 2
+            ;;
         --with-tools) tools_choice=1; mode=flags ;;
         --without-tools) tools_choice=0; mode=flags ;;
         --tools)
@@ -86,7 +92,10 @@ while (($#)); do
             mode=flags
             ;;
         --apply-saved) mode=saved ;;
-        --no-package-install) : ;;
+        --no-package-install)
+            printf '%s\n' 'Removed option: --no-package-install.' >&2
+            exit 2
+            ;;
         -h|--help) usage; exit 0 ;;
         *) printf 'Unknown option: %s\n' "$1" >&2; usage >&2; exit 2 ;;
     esac

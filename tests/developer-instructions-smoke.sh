@@ -31,7 +31,7 @@ EOF
 launch() {
     : >"$test_root/args.log"
     PATH="$test_root/bin:$PATH" HOME="$test_root/home" \
-        CODEX_ARGS_LOG="$test_root/args.log" "$repo_dir/bin/scodex" --no-update \
+        CODEX_ARGS_LOG="$test_root/args.log" "$repo_dir/bin/scodex" \
         >"$test_root/stdout.log" 2>"$test_root/stderr.log"
 }
 
@@ -129,7 +129,7 @@ producer_pid=$!
 : >"$test_root/args.log"
 PATH="$test_root/bin:$PATH" HOME="$test_root/home" \
     CODEX_ARGS_LOG="$test_root/args.log" CODEX_TURNS_LOG="$test_root/turns.log" \
-    "$repo_dir/bin/scodex" --no-update >"$test_root/stdout.log" 2>"$test_root/stderr.log"
+    "$repo_dir/bin/scodex" >"$test_root/stdout.log" 2>"$test_root/stderr.log"
 wait "$producer_pid"
 [[ $(wc -l <"$test_root/read-count") -eq 1 ]]
 turn_value='developer_instructions="You are Scriptorium, not Codex.\n\none session value\n"'
