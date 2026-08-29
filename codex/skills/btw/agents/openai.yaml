@@ -1,0 +1,6 @@
+interface:
+  display_name: "BTW"
+  short_description: "Run a short side task without replacing active work"
+  default_prompt: "Use $btw for this short side task while continuing the active task."
+policy:
+  allow_implicit_invocation: true

@@ -136,6 +136,8 @@ for target in \
     "$codex_home/monke-hard.config.toml" "$codex_home/cheap.config.toml" "$codex_home/normal.config.toml" \
     "$codex_home/hard.config.toml" \
     "$codex_home/agents/monke-worker.toml" \
+    "$codex_home/skills/btw/SKILL.md" \
+    "$codex_home/skills/btw/agents/openai.yaml" \
     "$codex_home/skills/monke-delegate/SKILL.md" \
     "$codex_home/skills/monke-delegate/agents/openai.yaml" \
     "$codex_home/skills/compact-markdown/SKILL.md" \
@@ -194,6 +196,10 @@ done
 rm -f -- "$legacy_profile" "$legacy_profile_model"
 remove_if_identical "$codex_home/agents/monke-worker.toml" \
     "$repo_dir/codex/agents/monke-worker.toml" 'Codex agent'
+remove_if_identical "$codex_home/skills/btw/SKILL.md" \
+    "$repo_dir/codex/skills/btw/SKILL.md" 'Codex skill'
+remove_if_identical "$codex_home/skills/btw/agents/openai.yaml" \
+    "$repo_dir/codex/skills/btw/agents/openai.yaml" 'Codex skill metadata'
 remove_if_identical "$codex_home/skills/monke-delegate/SKILL.md" \
     "$repo_dir/codex/skills/monke-delegate/SKILL.md" 'Codex skill'
 remove_if_identical "$codex_home/skills/monke-delegate/agents/openai.yaml" \
@@ -240,6 +246,8 @@ done
 
 remove_empty_dir "$codex_home/skills/monke-delegate/agents"
 remove_empty_dir "$codex_home/skills/monke-delegate"
+remove_empty_dir "$codex_home/skills/btw/agents"
+remove_empty_dir "$codex_home/skills/btw"
 remove_empty_dir "$codex_home/skills/compact-markdown/agents"
 remove_empty_dir "$codex_home/skills/compact-markdown"
 remove_empty_dir "$codex_home/skills/reuse-first/agents"

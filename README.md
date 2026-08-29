@@ -60,7 +60,7 @@ monke stats                   # Show readable token usage for the current projec
 | Launcher helper | `~/.local/bin/monke-preferences.sh` | Monke-managed |
 | Codex profile | `~/.codex/monke.config.toml` | Monke-managed |
 | Codex instructions | `~/.codex/AGENTS.md` | Marker-managed block |
-| Codex skills | `~/.codex/skills/{compact-markdown,reuse-first,monke-delegate}` | Unchanged or backed up, then replaced |
+| Codex skills | `~/.codex/skills/{btw,compact-markdown,reuse-first,monke-delegate}` | Unchanged or backed up, then replaced |
 | Monke personality | `codex/monke-personality.md` | Git-managed |
 | Shell hooks | User configuration files | Marker-managed blocks |
 | Optional tool data | Matching XDG data/cache/state directories | Isolated |
@@ -185,3 +185,13 @@ Monke installs and uses `compact-markdown` by default for new Markdown and mater
 edits. New files start compact; existing files keep untouched sections unless whole-file compaction
 is requested. It removes repetition and safely generalizes repeated examples while preserving
 contracts, exact literals, links, warnings, and Markdown structure.
+
+## Side tasks with `btw`
+
+Start a message with `btw` to send one short, independent task to a leaf agent while the main task
+continues, for example `btw add x, y, and z to the project TODO`. Monke reports the result when it
+finishes. Requests that overlap active work or need input or approval wait until the main task is
+complete; pending requests live only for the current session.
+
+The message and concise result remain in the main context, but the side agent's working transcript
+does not. Full interception before Codex sees the message would require a custom app-server client.

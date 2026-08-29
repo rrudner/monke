@@ -88,6 +88,10 @@ install_owned "$package_dir/profiles/monke.config.toml" \
     "$codex_home/monke.config.toml"
 install_owned "$package_dir/agents/monke-worker.toml" \
     "$codex_home/agents/monke-worker.toml"
+install_owned "$package_dir/skills/btw/SKILL.md" \
+    "$codex_home/skills/btw/SKILL.md"
+install_owned "$package_dir/skills/btw/agents/openai.yaml" \
+    "$codex_home/skills/btw/agents/openai.yaml"
 install_owned "$package_dir/skills/monke-delegate/SKILL.md" \
     "$codex_home/skills/monke-delegate/SKILL.md"
 install_owned "$package_dir/skills/monke-delegate/agents/openai.yaml" \

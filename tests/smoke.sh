@@ -35,6 +35,11 @@ grep -q '^default_subagent_model = "gpt-5.3-codex-spark"$' \
 [[ -f "$test_root/home/.codex/skills/reuse-first/SKILL.md" ]]
 [[ -f "$test_root/home/.codex/skills/reuse-first/agents/openai.yaml" ]]
 [[ -f "$test_root/home/.codex/skills/reuse-first/references/tooling.md" ]]
+[[ -f "$test_root/home/.codex/skills/btw/SKILL.md" ]]
+[[ -f "$test_root/home/.codex/skills/btw/agents/openai.yaml" ]]
+grep -q '^name: btw$' "$test_root/home/.codex/skills/btw/SKILL.md"
+grep -q 'allow_implicit_invocation: true' \
+    "$test_root/home/.codex/skills/btw/agents/openai.yaml"
 [[ -f "$test_root/home/.codex/skills/compact-markdown/SKILL.md" ]]
 [[ -f "$test_root/home/.codex/skills/compact-markdown/agents/openai.yaml" ]]
 grep -q 'compact only the requested or edited scope' \
@@ -259,6 +264,7 @@ CODEX_HOME="$uninstall_home/.codex" \
 [[ ! -e $uninstall_home/.codex/monke.config.toml ]]
 [[ ! -e $uninstall_home/.codex/skills/compact-markdown ]]
 [[ ! -e $uninstall_home/.codex/skills/reuse-first ]]
+[[ ! -e $uninstall_home/.codex/skills/btw ]]
 [[ ! -e $uninstall_home/.local/bin/monke ]]
 [[ ! -e $uninstall_home/.config/monke/preferences ]]
 [[ ! -e $uninstall_home/.config/monke/tools.catalog-reviewed ]]
@@ -289,12 +295,14 @@ CODEX_HOME="$modified_home/.codex" \
     "$repo_dir/install.sh" --without-tools --shell bash >"$test_root/modified-install.log"
 printf '# user modification\n' >>"$modified_home/.codex/monke.config.toml"
 printf '# user modification\n' >>"$modified_home/.codex/skills/compact-markdown/SKILL.md"
+printf '# user modification\n' >>"$modified_home/.codex/skills/btw/SKILL.md"
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$modified_home" \
 CODEX_HOME="$modified_home/.codex" \
     "$repo_dir/uninstall.sh" --yes --keep-repo >"$test_root/modified-uninstall.log"
 grep -q '^# user modification$' "$modified_home/.codex/monke.config.toml"
 grep -q '^# user modification$' \
     "$modified_home/.codex/skills/compact-markdown/SKILL.md"
+grep -q '^# user modification$' "$modified_home/.codex/skills/btw/SKILL.md"
 
 marker_refusal_home=$test_root/marker-refusal-home
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$marker_refusal_home" \
