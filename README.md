@@ -33,11 +33,11 @@ installation, and installing both versions together is unsupported.
 
 ## Uninstall
 
-Run `monke uninstall` and confirm, or use `monke uninstall --yes` for automation. It removes
-only matching Monke assets and marker-managed integration, retaining user files, timestamped
-backups, and modified assets. A clean repository in the default data location is removed last;
-pass `--keep-repo` to retain it. Invalid markers or symbolic-link paths stop before any file is
-changed.
+Run `monke uninstall` and confirm. A second prompt can remove all Monke directories, backups, and
+modified Monke assets; use `monke uninstall --purge --yes` for the same full removal without
+prompts. Without full removal, uninstall retains user files, backups, and modified assets. A clean
+repository in the default data location is removed last; pass `--keep-repo` to retain it. Invalid
+markers or symbolic-link paths stop before any file is changed.
 
 ## Everyday commands
 
@@ -118,7 +118,7 @@ command.
 ## Optional tools
 
 <!-- BEGIN GENERATED OPTIONAL TOOLS -->
-| Tool | Purpose | When to use | Selected by default |
+| Tool | Purpose | When to use | Preselected when enabled |
 |---|---|---|:---:|
 | ripgrep (`rg`) | Fast recursive text search | Use first for targeted text, symbol, and file-content discovery. | Yes |
 | fd | Fast and convenient file search | Use to locate files by name, extension, type, or directory. | Yes |
@@ -135,7 +135,8 @@ command.
 | Lighthouse | Audit web performance, accessibility, SEO, and best practices (requires Node.js 22+) | Use for evidence-based audits of a rendered web page. | No |
 <!-- END GENERATED OPTIONAL TOOLS -->
 
-Optional tools are disabled by default. Once enabled, commands already available on the machine
+Optional tools are disabled by default; the table shows which tools are preselected after enabling
+them. Once enabled, commands already available on the machine
 are used at any version and omitted from the installer selection. Missing selected tools install
 without administrator access through a pinned, checksum-verified, isolated mise runtime and run
 only inside `monke`. When a system copy appears later, interactive `monke` startup offers to
@@ -162,7 +163,8 @@ HTTP Basic Auth through an `Authorization` header passed with
 ```
 
 These suites cover safe installation and migration, tool isolation, updates, and failure rollback
-without modifying the real home directory.
+without modifying the real home directory. `smoke.sh` also runs the managed-block and developer-
+instruction checks.
 
 ## Overlap policy
 

@@ -8,7 +8,7 @@ begin='<!-- BEGIN GENERATED OPTIONAL TOOLS -->'
 end='<!-- END GENERATED OPTIONAL TOOLS -->'
 
 table=$(awk -F '\t' '
-    BEGIN { print "| Tool | Purpose | When to use | Selected by default |"; print "|---|---|---|:---:|" }
+    BEGIN { print "| Tool | Purpose | When to use | Preselected when enabled |"; print "|---|---|---|:---:|" }
     !/^#/ && NF >= 8 {
         tool = ($1 == $2 ? $6 : $6 " (`" $2 "`)")
         printf "| %s | %s | %s | %s |\n", tool, $7, $8, ($4 == 1 ? "Yes" : "No")

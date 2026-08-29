@@ -273,6 +273,28 @@ grep -qx '# Personal Codex settings' "$uninstall_home/.codex/config.toml"
 grep -qx 'keep this user file' "$uninstall_home/.config/monke/custom.txt"
 grep -qx 'preserve backup' "$uninstall_home/.config/monke/preferences.backup-user"
 
+purge_home=$test_root/purge-home
+purge_state=$purge_home/.local/state
+mkdir -p -- "$purge_home/.codex" "$purge_home/.local/state/monke/backups"
+printf '# Personal Codex settings\n' >"$purge_home/.codex/config.toml"
+PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$purge_home" XDG_STATE_HOME="$purge_state" \
+CODEX_HOME="$purge_home/.codex" \
+    "$repo_dir/install.sh" --without-tools --shell bash >"$test_root/purge-install.log"
+printf '# modified Monke asset\n' >>"$purge_home/.codex/monke.config.toml"
+printf 'backup\n' >"$purge_home/.local/state/monke/backups/kept-by-normal-uninstall"
+printf 'custom Monke data\n' >"$purge_home/.config/monke/custom.txt"
+printf 'y\ny\n' | PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$purge_home" \
+XDG_STATE_HOME="$purge_state" CODEX_HOME="$purge_home/.codex" \
+    "$repo_dir/uninstall.sh" --keep-repo >"$test_root/purge.log"
+[[ ! -e $purge_home/.config/monke ]]
+[[ ! -e $purge_home/.cache/monke ]]
+[[ ! -e $purge_home/.local/share/monke ]]
+[[ ! -e $purge_home/.local/state/monke ]]
+[[ ! -e $purge_home/.codex/monke.config.toml ]]
+[[ ! -e $purge_home/.codex/skills/compact-markdown ]]
+grep -qx '# Personal Codex settings' "$purge_home/.codex/config.toml"
+grep -q 'Monke full uninstall complete' "$test_root/purge.log"
+
 cancel_home=$test_root/cancel-home
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$cancel_home" \
 CODEX_HOME="$cancel_home/.codex" \

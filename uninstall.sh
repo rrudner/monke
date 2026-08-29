@@ -11,6 +11,7 @@ codex_home=${CODEX_HOME:-"$HOME/.codex"}
 preferences_file=$config_dir/preferences
 assume_yes=0
 keep_repo=0
+purge=0
 shell_rc=
 fish_target=${XDG_CONFIG_HOME:-"$HOME/.config"}/fish/conf.d/monke.fish
 fish_expected_plain=
@@ -23,6 +24,7 @@ Usage: ./uninstall.sh [options]
 Remove Monke-managed integration and assets without replacing user configuration.
 
   --yes        Do not ask for confirmation
+  --purge      Remove all Monke data, backups, and modified Monke assets
   --keep-repo  Keep the repository even when it is the clean default data-directory clone
   -h, --help   Show this help
 EOF
@@ -31,6 +33,7 @@ EOF
 while (($#)); do
     case $1 in
         --yes) assume_yes=1 ;;
+        --purge) purge=1 ;;
         --keep-repo) keep_repo=1 ;;
         -h|--help) usage; exit 0 ;;
         *) printf 'Unknown option: %s\n' "$1" >&2; usage >&2; exit 2 ;;
@@ -93,6 +96,13 @@ remove_owned_file() {
     local target=$1 label=$2
     [[ -e $target ]] || return 0
     rm -f -- "$target"
+    printf 'Removed %s: %s\n' "$label" "$target"
+}
+
+remove_owned_tree() {
+    local target=$1 label=$2
+    [[ -e $target ]] || return 0
+    rm -rf -- "$target"
     printf 'Removed %s: %s\n' "$label" "$target"
 }
 
@@ -168,6 +178,11 @@ if [[ $assume_yes == 0 ]]; then
         exit 0
     fi
     case ${answer,,} in y|yes) ;; *) printf 'Uninstall cancelled.\n'; exit 0 ;; esac
+    if [[ $purge == 0 ]]; then
+        if read -r -p 'Remove all Monke directories, backups, and modified Monke assets? [y/N] ' answer; then
+            case ${answer,,} in y|yes) purge=1 ;; esac
+        fi
+    fi
 fi
 
 remove_managed_block "$codex_home/AGENTS.md" '<!-- >>> monke >>> -->' '<!-- <<< monke <<< -->'
@@ -175,8 +190,12 @@ for target in "${shell_targets[@]}"; do
     remove_managed_block "$target" '# >>> monke >>>' '# <<< monke <<<'
 done
 
-remove_if_identical "$codex_home/monke.config.toml" \
-    "$repo_dir/codex/profiles/monke.config.toml" 'Codex profile'
+if [[ $purge == 1 ]]; then
+    remove_owned_file "$codex_home/monke.config.toml" 'Codex profile'
+else
+    remove_if_identical "$codex_home/monke.config.toml" \
+        "$repo_dir/codex/profiles/monke.config.toml" 'Codex profile'
+fi
 legacy_profile=$(mktemp "$codex_home/.legacy-profile.XXXXXX")
 legacy_profile_model=$(mktemp "$codex_home/.legacy-profile-model.XXXXXX")
 for profile in cheap normal hard; do
@@ -188,37 +207,57 @@ for profile in cheap normal hard; do
     sed "s/^model = \".*\"/model = \"$profile_model\"/" \
         "$repo_dir/codex/profiles/monke.config.toml" \
         >"$legacy_profile"
-    remove_if_identical "$codex_home/monke-$profile.config.toml" "$legacy_profile" 'Codex legacy profile'
+    if [[ $purge == 1 ]]; then
+        remove_owned_file "$codex_home/monke-$profile.config.toml" 'Codex legacy profile'
+    else
+        remove_if_identical "$codex_home/monke-$profile.config.toml" "$legacy_profile" 'Codex legacy profile'
+    fi
     awk '/^model =/{emit=1} emit && NF==0{exit} emit{print}' \
         "$legacy_profile" >"$legacy_profile_model"
-    remove_if_identical "$codex_home/$profile.config.toml" "$legacy_profile_model" 'Codex legacy profile'
+    if [[ $purge == 1 ]]; then
+        remove_owned_file "$codex_home/$profile.config.toml" 'Codex legacy profile'
+    else
+        remove_if_identical "$codex_home/$profile.config.toml" "$legacy_profile_model" 'Codex legacy profile'
+    fi
 done
 rm -f -- "$legacy_profile" "$legacy_profile_model"
-remove_if_identical "$codex_home/agents/monke-worker.toml" \
-    "$repo_dir/codex/agents/monke-worker.toml" 'Codex agent'
-remove_if_identical "$codex_home/skills/btw/SKILL.md" \
-    "$repo_dir/codex/skills/btw/SKILL.md" 'Codex skill'
-remove_if_identical "$codex_home/skills/btw/agents/openai.yaml" \
-    "$repo_dir/codex/skills/btw/agents/openai.yaml" 'Codex skill metadata'
-remove_if_identical "$codex_home/skills/monke-delegate/SKILL.md" \
-    "$repo_dir/codex/skills/monke-delegate/SKILL.md" 'Codex skill'
-remove_if_identical "$codex_home/skills/monke-delegate/agents/openai.yaml" \
-    "$repo_dir/codex/skills/monke-delegate/agents/openai.yaml" 'Codex skill metadata'
-remove_if_identical "$codex_home/skills/compact-markdown/SKILL.md" \
-    "$repo_dir/codex/skills/compact-markdown/SKILL.md" 'Codex skill'
-remove_if_identical "$codex_home/skills/compact-markdown/agents/openai.yaml" \
-    "$repo_dir/codex/skills/compact-markdown/agents/openai.yaml" 'Codex skill metadata'
-remove_if_identical "$codex_home/skills/reuse-first/SKILL.md" \
-    "$repo_dir/codex/skills/reuse-first/SKILL.md" 'Codex skill'
-remove_if_identical "$codex_home/skills/reuse-first/agents/openai.yaml" \
-    "$repo_dir/codex/skills/reuse-first/agents/openai.yaml" 'Codex skill metadata'
-remove_if_identical "$codex_home/skills/reuse-first/references/tooling.md" \
-    "$repo_dir/codex/skills/reuse-first/references/tooling.md" 'Codex skill reference'
-remove_if_identical "$bin_dir/monke" "$repo_dir/bin/monke" 'launcher'
-remove_if_identical "$bin_dir/monke-preferences.sh" "$repo_dir/scripts/preferences.sh" 'launcher helper'
+if [[ $purge == 1 ]]; then
+    remove_owned_file "$codex_home/agents/monke-worker.toml" 'Codex agent'
+    for target in monke-delegate btw compact-markdown reuse-first; do
+        remove_owned_tree "$codex_home/skills/$target" 'Codex skill'
+    done
+else
+    remove_if_identical "$codex_home/agents/monke-worker.toml" \
+        "$repo_dir/codex/agents/monke-worker.toml" 'Codex agent'
+    remove_if_identical "$codex_home/skills/btw/SKILL.md" \
+        "$repo_dir/codex/skills/btw/SKILL.md" 'Codex skill'
+    remove_if_identical "$codex_home/skills/btw/agents/openai.yaml" \
+        "$repo_dir/codex/skills/btw/agents/openai.yaml" 'Codex skill metadata'
+    remove_if_identical "$codex_home/skills/monke-delegate/SKILL.md" \
+        "$repo_dir/codex/skills/monke-delegate/SKILL.md" 'Codex skill'
+    remove_if_identical "$codex_home/skills/monke-delegate/agents/openai.yaml" \
+        "$repo_dir/codex/skills/monke-delegate/agents/openai.yaml" 'Codex skill metadata'
+    remove_if_identical "$codex_home/skills/compact-markdown/SKILL.md" \
+        "$repo_dir/codex/skills/compact-markdown/SKILL.md" 'Codex skill'
+    remove_if_identical "$codex_home/skills/compact-markdown/agents/openai.yaml" \
+        "$repo_dir/codex/skills/compact-markdown/agents/openai.yaml" 'Codex skill metadata'
+    remove_if_identical "$codex_home/skills/reuse-first/SKILL.md" \
+        "$repo_dir/codex/skills/reuse-first/SKILL.md" 'Codex skill'
+    remove_if_identical "$codex_home/skills/reuse-first/agents/openai.yaml" \
+        "$repo_dir/codex/skills/reuse-first/agents/openai.yaml" 'Codex skill metadata'
+    remove_if_identical "$codex_home/skills/reuse-first/references/tooling.md" \
+        "$repo_dir/codex/skills/reuse-first/references/tooling.md" 'Codex skill reference'
+fi
+if [[ $purge == 1 ]]; then
+    remove_owned_file "$bin_dir/monke" 'launcher'
+    remove_owned_file "$bin_dir/monke-preferences.sh" 'launcher helper'
+else
+    remove_if_identical "$bin_dir/monke" "$repo_dir/bin/monke" 'launcher'
+    remove_if_identical "$bin_dir/monke-preferences.sh" "$repo_dir/scripts/preferences.sh" 'launcher helper'
+fi
 
 if [[ -e $fish_target ]]; then
-    if cmp -s -- "$fish_target" "$fish_expected_plain"; then
+    if [[ $purge == 1 ]] || cmp -s -- "$fish_target" "$fish_expected_plain"; then
         rm -f -- "$fish_target"
         printf 'Removed Fish integration: %s\n' "$fish_target"
     else
@@ -259,8 +298,16 @@ remove_empty_dir "$config_dir"
 remove_empty_dir "$cache_dir"
 remove_empty_dir "$state_dir"
 
+if [[ $purge == 1 ]]; then
+    remove_owned_tree "$config_dir" 'Monke configuration directory'
+    remove_owned_tree "$cache_dir" 'Monke cache directory'
+    remove_owned_tree "$state_dir" 'Monke state directory'
+fi
+
 # The repository is last: all cleanup above continues to work even when it is removed.
-if [[ $repo_can_remove == 1 ]]; then
+if [[ $purge == 1 && $keep_repo == 0 ]]; then
+    remove_owned_tree "$data_dir" 'Monke data directory'
+elif [[ $repo_can_remove == 1 ]]; then
     rm -rf -- "$repo_candidate"
     printf 'Removed clean managed repository: %s\n' "$repo_candidate"
 elif [[ $keep_repo == 1 ]]; then
@@ -270,5 +317,9 @@ else
 fi
 remove_empty_dir "$data_dir"
 
-printf 'Monke uninstall complete. Backups remain in %s; user configuration and modified assets were preserved.\n' \
-    "$state_dir/backups"
+if [[ $purge == 1 ]]; then
+    printf 'Monke full uninstall complete. User configuration outside Monke-managed paths was preserved.\n'
+else
+    printf 'Monke uninstall complete. Backups remain in %s; user configuration and modified assets were preserved.\n' \
+        "$state_dir/backups"
+fi
