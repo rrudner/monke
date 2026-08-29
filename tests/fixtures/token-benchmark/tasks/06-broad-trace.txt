@@ -1,3 +1,0 @@
-Read the six stage modules under lib/pipeline without modifying them. Trace PIPELINE_NEXT from the
-entry stage through completion. Return the six function suffixes from first to last in one concise
-line, followed by the final PIPELINE_NEXT value.

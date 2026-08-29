@@ -1,2 +1,0 @@
-Repeated --tag options must preserve every value in input order. Implement the smallest coherent
-fix and run `./tests/check.sh repeated-tags`.

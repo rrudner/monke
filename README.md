@@ -161,22 +161,6 @@ HTTP Basic Auth through an `Authorization` header passed with
 These suites cover safe installation and migration, tool isolation, updates, and failure rollback
 without modifying the real home directory.
 
-## Token benchmark 📜
-
-Prepare and inspect the six-task Codex versus Scriptorium pilot without using model tokens:
-
-```bash
-./scripts/token-benchmark.sh prepare
-```
-
-The separate paid run, `./scripts/token-benchmark.sh run [OUTPUT_DIR]`, uses isolated `CODEX_HOME`
-directories, identical benchmark-only Terra settings, and writes per-task quality and token
-reports. The baseline has no Scriptorium instructions or agents; the Scriptorium variant adds the
-delegation setup. One run per task is directional, not statistically significant.
-
-Use `./scripts/token-benchmark.sh run-one TASK VARIANT OUTPUT_DIR` for a single inexpensive
-regression check, for example with `02-config-path scriptorium`.
-
 ## Overlap policy
 
 Scriptorium installs `reuse-first` and an AGENTS rule that invokes it before work that may duplicate

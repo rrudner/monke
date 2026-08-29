@@ -1,3 +1,0 @@
-Harden bundle extraction so an archive is rejected before extraction when any member is absolute
-or contains a `..` path component. Rejection must not partially extract files; valid archives must
-still work. Run `./tests/check.sh safe-unpack`.
