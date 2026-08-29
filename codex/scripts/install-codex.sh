@@ -5,7 +5,7 @@ script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 package_dir=$(cd -- "$script_dir/.." && pwd)
 repo_dir=$(cd -- "$package_dir/.." && pwd)
 codex_home=${CODEX_HOME:-"$HOME/.codex"}
-config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}/scriptorium
+config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}/monke
 source "$repo_dir/scripts/backup.sh"
 
 install_owned() {
@@ -26,11 +26,11 @@ install_owned() {
     if [[ -e $target ]]; then
         backup_target "$target"
     fi
-    candidate=$(mktemp "$(dirname -- "$target")/.scriptorium-owned.XXXXXX")
+    candidate=$(mktemp "$(dirname -- "$target")/.monke-owned.XXXXXX")
     cp -- "$source" "$candidate"
     mv -- "$candidate" "$target"
     chmod 600 -- "$target"
-    printf 'Installed Scriptorium asset: %s\n' "$target"
+    printf 'Installed Monke asset: %s\n' "$target"
 }
 
 retire_if_identical() {
@@ -84,14 +84,14 @@ migrate_legacy_config() {
 mkdir -p -- "$codex_home" "$config_dir"
 migrate_legacy_config
 
-install_owned "$package_dir/profiles/scriptorium.config.toml" \
-    "$codex_home/scriptorium.config.toml"
-install_owned "$package_dir/agents/scriptorium-worker.toml" \
-    "$codex_home/agents/scriptorium-worker.toml"
-install_owned "$package_dir/skills/scriptorium-delegate/SKILL.md" \
-    "$codex_home/skills/scriptorium-delegate/SKILL.md"
-install_owned "$package_dir/skills/scriptorium-delegate/agents/openai.yaml" \
-    "$codex_home/skills/scriptorium-delegate/agents/openai.yaml"
+install_owned "$package_dir/profiles/monke.config.toml" \
+    "$codex_home/monke.config.toml"
+install_owned "$package_dir/agents/monke-worker.toml" \
+    "$codex_home/agents/monke-worker.toml"
+install_owned "$package_dir/skills/monke-delegate/SKILL.md" \
+    "$codex_home/skills/monke-delegate/SKILL.md"
+install_owned "$package_dir/skills/monke-delegate/agents/openai.yaml" \
+    "$codex_home/skills/monke-delegate/agents/openai.yaml"
 install_owned "$package_dir/skills/compact-markdown/SKILL.md" \
     "$codex_home/skills/compact-markdown/SKILL.md"
 install_owned "$package_dir/skills/compact-markdown/agents/openai.yaml" \
@@ -112,8 +112,8 @@ for profile in cheap normal hard; do
         hard) profile_model='gpt-5.6-sol' ;;
     esac
     sed "s/^model = \".*\"/model = \"$profile_model\"/" \
-        "$package_dir/profiles/scriptorium.config.toml" >"$legacy_profile"
-    retire_if_identical "$codex_home/scriptorium-$profile.config.toml" "$legacy_profile"
+        "$package_dir/profiles/monke.config.toml" >"$legacy_profile"
+    retire_if_identical "$codex_home/monke-$profile.config.toml" "$legacy_profile"
     awk '/^model =/{emit=1} emit && NF==0{exit} emit{print}' \
         "$legacy_profile" >"$legacy_profile_model"
     retire_if_identical "$codex_home/$profile.config.toml" "$legacy_profile_model"
@@ -121,8 +121,8 @@ done
 rm -f -- "$legacy_profile" "$legacy_profile_model"
 
 legacy_agent=$(mktemp "$codex_home/.legacy-agent.XXXXXX")
-sed 's/^name = "scriptorium_worker"/name = "token_worker"/' \
-    "$package_dir/agents/scriptorium-worker.toml" >"$legacy_agent"
+sed 's/^name = "monke_worker"/name = "token_worker"/' \
+    "$package_dir/agents/monke-worker.toml" >"$legacy_agent"
 retire_if_identical "$codex_home/agents/token-worker.toml" "$legacy_agent"
 rm -f -- "$legacy_agent"
 
@@ -130,11 +130,11 @@ legacy_skill=$(mktemp "$codex_home/.legacy-skill.XXXXXX")
 legacy_skill_yaml=$(mktemp "$codex_home/.legacy-skill-yaml.XXXXXX")
 legacy_skill_v1=0
 [[ ! -e $codex_home/skills/delegate ]] || prepare_backup_target "$codex_home/skills/delegate"
-sed -e 's/^name: scriptorium-delegate$/name: delegate/' \
-    -e 's/`scriptorium_worker`/`token_worker`/' \
-    "$package_dir/skills/scriptorium-delegate/SKILL.md" >"$legacy_skill"
-sed 's/\$scriptorium-delegate/\$delegate/' \
-    "$package_dir/skills/scriptorium-delegate/agents/openai.yaml" >"$legacy_skill_yaml"
+sed -e 's/^name: monke-delegate$/name: delegate/' \
+    -e 's/`monke_worker`/`token_worker`/' \
+    "$package_dir/skills/monke-delegate/SKILL.md" >"$legacy_skill"
+sed 's/\$monke-delegate/\$delegate/' \
+    "$package_dir/skills/monke-delegate/agents/openai.yaml" >"$legacy_skill_yaml"
 if [[ -f $codex_home/skills/delegate/SKILL.md ]] \
     && [[ -f $codex_home/skills/delegate/agents/openai.yaml ]] \
     && [[ $(find "$codex_home/skills/delegate" -type f | wc -l) -eq 2 ]] \

@@ -2,9 +2,9 @@
 set -euo pipefail
 
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-test_root=$(mktemp -d /tmp/scriptorium-developer-instructions.XXXXXX)
+test_root=$(mktemp -d /tmp/monke-developer-instructions.XXXXXX)
 trap 'rm -rf -- "$test_root"' EXIT
-mkdir -p -- "$test_root/bin" "$test_root/home/.config/scriptorium"
+mkdir -p -- "$test_root/bin" "$test_root/home/.config/monke"
 
 cat >"$test_root/bin/codex" <<'EOF'
 #!/usr/bin/env bash
@@ -19,7 +19,7 @@ chmod +x "$test_root/bin/codex"
 
 write_preferences() {
     local path=$1 enabled=${2:-1}
-    cat >"$test_root/home/.config/scriptorium/preferences" <<EOF
+    cat >"$test_root/home/.config/monke/preferences" <<EOF
 repo_dir=$repo_dir
 update_check=0
 tools=0
@@ -31,7 +31,7 @@ EOF
 launch() {
     : >"$test_root/args.log"
     PATH="$test_root/bin:$PATH" HOME="$test_root/home" \
-        CODEX_ARGS_LOG="$test_root/args.log" "$repo_dir/bin/scodex" \
+        CODEX_ARGS_LOG="$test_root/args.log" "$repo_dir/bin/monke" \
         >"$test_root/stdout.log" 2>"$test_root/stderr.log"
 }
 
@@ -51,7 +51,7 @@ assert_skipped_with_warning() {
     while IFS= read -r -d '' arg; do
         [[ $arg != developer_instructions=* ]]
     done <"$test_root/args.log"
-    [[ $(grep -c '^scodex: developer instructions unavailable; continuing without them\.$' \
+    [[ $(grep -c '^monke: developer instructions unavailable; continuing without them\.$' \
         "$test_root/stderr.log") -eq 1 ]]
 }
 
@@ -59,7 +59,7 @@ plain_file=$test_root/plain.txt
 printf 'Line 1\n"quote" \\ slash $() `tick`\ttab\rCR\n\n' >"$plain_file"
 write_preferences "$plain_file"
 launch
-expected='developer_instructions="You are Scriptorium, not Codex.\n\nLine 1\n\"quote\" \\ slash $() `tick`\ttab\rCR\n\n"'
+expected='developer_instructions="You are Monke, not Codex.\n\nLine 1\n\"quote\" \\ slash $() `tick`\ttab\rCR\n\n"'
 assert_single_value "$expected"
 
 mkdir -p "$test_root/home/instructions"
@@ -70,7 +70,7 @@ printf '%s\n' '---' 'name: test' 'description: test skill' '---' \
 tilde_skill='~/instructions/SKILL.md'
 write_preferences "$tilde_skill"
 launch
-assert_single_value 'developer_instructions="You are Scriptorium, not Codex.\n\nBody line 1\nBody $HOME `literal` \\ path\n"'
+assert_single_value 'developer_instructions="You are Monke, not Codex.\n\nBody line 1\nBody $HOME `literal` \\ path\n"'
 
 write_preferences "$test_root/missing.txt"
 launch
@@ -129,10 +129,10 @@ producer_pid=$!
 : >"$test_root/args.log"
 PATH="$test_root/bin:$PATH" HOME="$test_root/home" \
     CODEX_ARGS_LOG="$test_root/args.log" CODEX_TURNS_LOG="$test_root/turns.log" \
-    "$repo_dir/bin/scodex" >"$test_root/stdout.log" 2>"$test_root/stderr.log"
+    "$repo_dir/bin/monke" >"$test_root/stdout.log" 2>"$test_root/stderr.log"
 wait "$producer_pid"
 [[ $(wc -l <"$test_root/read-count") -eq 1 ]]
-turn_value='developer_instructions="You are Scriptorium, not Codex.\n\none session value\n"'
+turn_value='developer_instructions="You are Monke, not Codex.\n\none session value\n"'
 mapfile -t turns <"$test_root/turns.log"
 [[ ${#turns[@]} -eq 2 ]]
 [[ ${turns[0]} == "turn-1:$turn_value" ]]

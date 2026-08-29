@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-scriptorium_backup_root() {
-    printf '%s/scriptorium/backups\n' "${XDG_STATE_HOME:-$HOME/.local/state}"
+monke_backup_root() {
+    printf '%s/monke/backups\n' "${XDG_STATE_HOME:-$HOME/.local/state}"
 }
 
 backup_target_dir() {
     local target=$1 root hash
-    root=$(scriptorium_backup_root)
+    root=$(monke_backup_root)
     hash=$(printf '%s' "$target" | sha256sum | awk '{ print $1 }')
     printf '%s/%s\n' "$root" "$hash"
 }
@@ -34,7 +34,7 @@ prune_target_backups() {
 
 prepare_backup_target() {
     local target=$1 target_dir root legacy name stamp destination
-    root=$(scriptorium_backup_root)
+    root=$(monke_backup_root)
     target_dir=$(backup_target_dir "$target")
     mkdir -p -- "$root" "$target_dir"
     chmod 700 -- "$root" "$target_dir"

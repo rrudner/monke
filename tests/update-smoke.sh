@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-test_root=$(mktemp -d /tmp/scriptorium-smoke-update.XXXXXX)
+test_root=$(mktemp -d /tmp/monke-smoke-update.XXXXXX)
 trap 'rm -rf -- "$test_root"' EXIT
 
 work_base=$test_root/work
@@ -51,8 +51,8 @@ git -C "$work_base/upstream" push > /dev/null
 
 codex_log=$test_root/codex.log
 HOME=$test_root/home
-mkdir -p -- "$HOME/.config/scriptorium"
-cat >"$HOME/.config/scriptorium/preferences" <<EOF
+mkdir -p -- "$HOME/.config/monke"
+cat >"$HOME/.config/monke/preferences" <<EOF
 repo_dir=$work_base/local
 tools=1
 update_check=1
@@ -60,7 +60,7 @@ shell=bash
 shell_rc=
 developer_instructions_file=$work_base/local/.agents/skills/monke-language/SKILL.md
 EOF
-printf '%s\n' ripgrep fd jq yq shellcheck >"$HOME/.config/scriptorium/tools.selected"
+printf '%s\n' ripgrep fd jq yq shellcheck >"$HOME/.config/monke/tools.selected"
 
 export CODEX_TEST_LOG=$codex_log
 
@@ -70,14 +70,14 @@ export CODEX_TEST_LOG=$codex_log
 
 # launch path should invoke codex even when updates are available
 before=$(git -C "$work_base/local" rev-parse HEAD)
-"$repo_dir/bin/scodex" >/dev/null
+"$repo_dir/bin/monke" >/dev/null
 [[ -s "$codex_log" ]]
-grep -q '^args:--profile scriptorium -c shell_environment_policy.inherit=all -c shell_environment_policy.set.PATH="' \
+grep -q '^args:--profile monke -c shell_environment_policy.inherit=all -c shell_environment_policy.set.PATH="' \
     "$codex_log"
 
 # Interactive startup should apply an update, restart once, and continue to Codex.
 printf '1\n\n' | CODEX_TEST_LOG=$test_root/update-call.log \
-    script -qec "'$repo_dir/bin/scodex'" /dev/null >"$test_root/update-output.log"
+    script -qec "'$repo_dir/bin/monke'" /dev/null >"$test_root/update-output.log"
 after=$(git -C "$work_base/local" rev-parse HEAD)
 if [[ "$before" == "$after" ]]; then
     printf 'update did not apply\n' >&2
@@ -88,20 +88,20 @@ if ! grep -q 'new optional tools are available: future-tool' "$test_root/update-
     head -20 "$test_root/update-output.log" >&2
     exit 1
 fi
-grep -q 'scodex: downloading repository update' "$test_root/update-output.log"
-grep -q 'scodex: applying the updated configuration' "$test_root/update-output.log"
-grep -q 'scodex: finalizing update' "$test_root/update-output.log"
-grep -qx 'tools=1' "$HOME/.config/scriptorium/preferences"
-grep -qx 'developer_instructions=1' "$HOME/.config/scriptorium/preferences"
+grep -q 'monke: downloading repository update' "$test_root/update-output.log"
+grep -q 'monke: applying the updated configuration' "$test_root/update-output.log"
+grep -q 'monke: finalizing update' "$test_root/update-output.log"
+grep -qx 'tools=1' "$HOME/.config/monke/preferences"
+grep -qx 'developer_instructions=1' "$HOME/.config/monke/preferences"
 grep -Fxq "developer_instructions_file=$work_base/local/codex/developer-instructions.md" \
-    "$HOME/.config/scriptorium/preferences"
-grep -q $'^ripgrep\tsystem\t' "$HOME/.config/scriptorium/tools.state"
+    "$HOME/.config/monke/preferences"
+grep -q $'^ripgrep\tsystem\t' "$HOME/.config/monke/tools.state"
 # Interactive restart reviews and clears the pending catalog migration.
-[[ ! -e $HOME/.local/state/scriptorium/tools-reconfigure-required ]]
-! grep -qx future-tool "$HOME/.config/scriptorium/tools.selected"
+[[ ! -e $HOME/.local/state/monke/tools-reconfigure-required ]]
+! grep -qx future-tool "$HOME/.config/monke/tools.selected"
 
 # The short tools command remains the public status view.
-"$repo_dir/bin/scodex" tools >"$test_root/tools-status.log"
+"$repo_dir/bin/monke" tools >"$test_root/tools-status.log"
 grep -q '^ripgrep ' "$test_root/tools-status.log"
 
 # tools delegation when tools manager is present
@@ -110,7 +110,7 @@ cat > "$work_base/local/scripts/tools-manager.sh" <<'EOF'
 printf '%s\n' "$*" >>"$CODEX_TEST_LOG"
 EOF
 chmod +x "$work_base/local/scripts/tools-manager.sh"
-CODEX_TEST_LOG=$test_root/tools.log "$repo_dir/bin/scodex" tools inspect >/dev/null
+CODEX_TEST_LOG=$test_root/tools.log "$repo_dir/bin/monke" tools inspect >/dev/null
 grep -q 'inspect' "$test_root/tools.log"
 
 # Interactive startup offers to replace managed tools when system copies appear.
@@ -124,12 +124,12 @@ esac
 EOF
 chmod +x "$work_base/local/scripts/tools-manager.sh"
 printf '\n' | CODEX_TEST_LOG=$test_root/system-replacement.log \
-    script -qec "'$repo_dir/bin/scodex'" /dev/null \
+    script -qec "'$repo_dir/bin/monke'" /dev/null \
     >"$test_root/system-replacement-output.log"
 grep -q 'system copies now available for locally managed tools: gh' \
     "$test_root/system-replacement-output.log"
 grep -qx adopt-system "$test_root/system-replacement.log"
-grep -q 'scodex: switched to the system versions' "$test_root/system-replacement-output.log"
+grep -q 'monke: switched to the system versions' "$test_root/system-replacement-output.log"
 
 # A successful launch-time update restarts through the current launcher before Codex starts.
 cat >"$work_base/local/scripts/update-repository.sh" <<'EOF'
@@ -138,21 +138,21 @@ printf 'update-check\n' >>"$CODEX_TEST_LOG"
 exit 10
 EOF
 chmod +x "$work_base/local/scripts/update-repository.sh"
-CODEX_TEST_LOG=$test_root/restart.log "$repo_dir/bin/scodex" >/dev/null
+CODEX_TEST_LOG=$test_root/restart.log "$repo_dir/bin/monke" >/dev/null
 grep -qx 'update-check' "$test_root/restart.log"
 [[ $(grep -c '^args:' "$test_root/restart.log") -eq 1 ]]
 
 # Removed public aliases fail before Codex starts.
 for removed in --cheap cheap --normal normal --hard hard --no-update update; do
     set +e
-    CODEX_TEST_LOG=$test_root/removed.log "$repo_dir/bin/scodex" "$removed" \
+    CODEX_TEST_LOG=$test_root/removed.log "$repo_dir/bin/monke" "$removed" \
         >"$test_root/removed-output.log" 2>&1
     removed_status=$?
     set -e
     [[ $removed_status -eq 2 ]]
 done
 set +e
-CODEX_TEST_LOG=$test_root/removed.log "$repo_dir/bin/scodex" tools status \
+CODEX_TEST_LOG=$test_root/removed.log "$repo_dir/bin/monke" tools status \
     >"$test_root/removed-output.log" 2>&1
 removed_status=$?
 set -e

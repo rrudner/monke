@@ -22,14 +22,14 @@ update_managed_block() {
     fi
     target_dir=$(dirname -- "$target")
     mkdir -p -- "$target_dir"
-    candidate=$(mktemp "$target_dir/.scriptorium-candidate.XXXXXX")
+    candidate=$(mktemp "$target_dir/.monke-candidate.XXXXXX")
 
     prepare_backup_target "$target" || { rm -f -- "$candidate"; return 1; }
 
     if [[ -f $target ]] \
         && { [[ -z $legacy_source ]] || ! cmp -s -- "$target" "$legacy_source"; }; then
         if ! validate_managed_markers "$target" "$start_marker" "$end_marker"; then
-            printf 'Refusing to edit %s: unmatched Scriptorium markers.\n' "$target" >&2
+            printf 'Refusing to edit %s: unmatched Monke markers.\n' "$target" >&2
             rm -f -- "$candidate"
             return 1
         fi
@@ -91,10 +91,10 @@ remove_managed_block() {
     prepare_backup_target "$target" || return 1
     grep -Fqx -- "$start_marker" "$target" || return 0
     if ! validate_managed_markers "$target" "$start_marker" "$end_marker"; then
-        printf 'Refusing to edit %s: unmatched Scriptorium markers.\n' "$target" >&2
+        printf 'Refusing to edit %s: unmatched Monke markers.\n' "$target" >&2
         return 1
     fi
-    cleaned=$(mktemp "$(dirname -- "$target")/.scriptorium-remove.XXXXXX")
+    cleaned=$(mktemp "$(dirname -- "$target")/.monke-remove.XXXXXX")
     local start_line end_line
     read -r start_line end_line < <(awk -v start="$start_marker" -v end="$end_marker" '
         $0 == start { first = NR } $0 == end { last = NR }

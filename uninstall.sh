@@ -2,17 +2,17 @@
 set -euo pipefail
 
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}/scriptorium
-data_dir=${XDG_DATA_HOME:-"$HOME/.local/share"}/scriptorium
-cache_dir=${XDG_CACHE_HOME:-"$HOME/.cache"}/scriptorium
-state_dir=${XDG_STATE_HOME:-"$HOME/.local/state"}/scriptorium
+config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}/monke
+data_dir=${XDG_DATA_HOME:-"$HOME/.local/share"}/monke
+cache_dir=${XDG_CACHE_HOME:-"$HOME/.cache"}/monke
+state_dir=${XDG_STATE_HOME:-"$HOME/.local/state"}/monke
 bin_dir=${XDG_BIN_HOME:-"$HOME/.local/bin"}
 codex_home=${CODEX_HOME:-"$HOME/.codex"}
 preferences_file=$config_dir/preferences
 assume_yes=0
 keep_repo=0
 shell_rc=
-fish_target=${XDG_CONFIG_HOME:-"$HOME/.config"}/fish/conf.d/scriptorium.fish
+fish_target=${XDG_CONFIG_HOME:-"$HOME/.config"}/fish/conf.d/monke.fish
 fish_expected_plain=
 shell_targets=()
 
@@ -20,7 +20,7 @@ usage() {
     cat <<'EOF'
 Usage: ./uninstall.sh [options]
 
-Remove Scriptorium-managed integration and assets without replacing user configuration.
+Remove Monke-managed integration and assets without replacing user configuration.
 
   --yes        Do not ask for confirmation
   --keep-repo  Keep the repository even when it is the clean default data-directory clone
@@ -118,7 +118,7 @@ write_fish_expected() {
 add_shell_target "$HOME/.bashrc"
 add_shell_target "$HOME/.zshrc"
 add_shell_target "$shell_rc"
-fish_expected_plain=$(mktemp "${TMPDIR:-/tmp}/scriptorium-fish.XXXXXX")
+fish_expected_plain=$(mktemp "${TMPDIR:-/tmp}/monke-fish.XXXXXX")
 trap 'rm -f -- "$fish_expected_plain"' EXIT
 write_fish_expected "$fish_expected_plain"
 
@@ -131,13 +131,13 @@ for target in \
     "$state_dir/last-update.log" "$state_dir/update.lock" "$state_dir/tools-update-check" \
     "$state_dir/tools-reconfigure-required" \
     "$data_dir/repo" "$data_dir/runtime" "$data_dir/mise" "$cache_dir/mise" "$state_dir/mise" \
-    "$bin_dir/scodex" "$bin_dir/scriptorium-preferences.sh" "$codex_home/scriptorium.config.toml" \
-    "$codex_home/scriptorium-cheap.config.toml" "$codex_home/scriptorium-normal.config.toml" \
-    "$codex_home/scriptorium-hard.config.toml" "$codex_home/cheap.config.toml" "$codex_home/normal.config.toml" \
+    "$bin_dir/monke" "$bin_dir/monke-preferences.sh" "$codex_home/monke.config.toml" \
+    "$codex_home/monke-cheap.config.toml" "$codex_home/monke-normal.config.toml" \
+    "$codex_home/monke-hard.config.toml" "$codex_home/cheap.config.toml" "$codex_home/normal.config.toml" \
     "$codex_home/hard.config.toml" \
-    "$codex_home/agents/scriptorium-worker.toml" \
-    "$codex_home/skills/scriptorium-delegate/SKILL.md" \
-    "$codex_home/skills/scriptorium-delegate/agents/openai.yaml" \
+    "$codex_home/agents/monke-worker.toml" \
+    "$codex_home/skills/monke-delegate/SKILL.md" \
+    "$codex_home/skills/monke-delegate/agents/openai.yaml" \
     "$codex_home/skills/compact-markdown/SKILL.md" \
     "$codex_home/skills/compact-markdown/agents/openai.yaml" \
     "$codex_home/skills/reuse-first/SKILL.md" \
@@ -145,9 +145,9 @@ for target in \
     "$codex_home/skills/reuse-first/references/tooling.md"; do
     assert_safe_path "$target"
 done
-preflight_block "$codex_home/AGENTS.md" '<!-- >>> scriptorium >>> -->' '<!-- <<< scriptorium <<< -->'
+preflight_block "$codex_home/AGENTS.md" '<!-- >>> monke >>> -->' '<!-- <<< monke <<< -->'
 for target in "${shell_targets[@]}"; do
-    preflight_block "$target" '# >>> scriptorium >>>' '# <<< scriptorium <<<'
+    preflight_block "$target" '# >>> monke >>>' '# <<< monke <<<'
 done
 assert_safe_path "$fish_target"
 
@@ -161,20 +161,20 @@ if [[ $keep_repo == 0 ]] && same_directory "$repo_dir" "$repo_candidate" \
 fi
 
 if [[ $assume_yes == 0 ]]; then
-    if ! read -r -p 'Remove Scriptorium-managed files? [y/N] ' answer; then
+    if ! read -r -p 'Remove Monke-managed files? [y/N] ' answer; then
         printf 'Uninstall cancelled.\n'
         exit 0
     fi
     case ${answer,,} in y|yes) ;; *) printf 'Uninstall cancelled.\n'; exit 0 ;; esac
 fi
 
-remove_managed_block "$codex_home/AGENTS.md" '<!-- >>> scriptorium >>> -->' '<!-- <<< scriptorium <<< -->'
+remove_managed_block "$codex_home/AGENTS.md" '<!-- >>> monke >>> -->' '<!-- <<< monke <<< -->'
 for target in "${shell_targets[@]}"; do
-    remove_managed_block "$target" '# >>> scriptorium >>>' '# <<< scriptorium <<<'
+    remove_managed_block "$target" '# >>> monke >>>' '# <<< monke <<<'
 done
 
-remove_if_identical "$codex_home/scriptorium.config.toml" \
-    "$repo_dir/codex/profiles/scriptorium.config.toml" 'Codex profile'
+remove_if_identical "$codex_home/monke.config.toml" \
+    "$repo_dir/codex/profiles/monke.config.toml" 'Codex profile'
 legacy_profile=$(mktemp "$codex_home/.legacy-profile.XXXXXX")
 legacy_profile_model=$(mktemp "$codex_home/.legacy-profile-model.XXXXXX")
 for profile in cheap normal hard; do
@@ -184,20 +184,20 @@ for profile in cheap normal hard; do
         hard) profile_model='gpt-5.6-sol' ;;
     esac
     sed "s/^model = \".*\"/model = \"$profile_model\"/" \
-        "$repo_dir/codex/profiles/scriptorium.config.toml" \
+        "$repo_dir/codex/profiles/monke.config.toml" \
         >"$legacy_profile"
-    remove_if_identical "$codex_home/scriptorium-$profile.config.toml" "$legacy_profile" 'Codex legacy profile'
+    remove_if_identical "$codex_home/monke-$profile.config.toml" "$legacy_profile" 'Codex legacy profile'
     awk '/^model =/{emit=1} emit && NF==0{exit} emit{print}' \
         "$legacy_profile" >"$legacy_profile_model"
     remove_if_identical "$codex_home/$profile.config.toml" "$legacy_profile_model" 'Codex legacy profile'
 done
 rm -f -- "$legacy_profile" "$legacy_profile_model"
-remove_if_identical "$codex_home/agents/scriptorium-worker.toml" \
-    "$repo_dir/codex/agents/scriptorium-worker.toml" 'Codex agent'
-remove_if_identical "$codex_home/skills/scriptorium-delegate/SKILL.md" \
-    "$repo_dir/codex/skills/scriptorium-delegate/SKILL.md" 'Codex skill'
-remove_if_identical "$codex_home/skills/scriptorium-delegate/agents/openai.yaml" \
-    "$repo_dir/codex/skills/scriptorium-delegate/agents/openai.yaml" 'Codex skill metadata'
+remove_if_identical "$codex_home/agents/monke-worker.toml" \
+    "$repo_dir/codex/agents/monke-worker.toml" 'Codex agent'
+remove_if_identical "$codex_home/skills/monke-delegate/SKILL.md" \
+    "$repo_dir/codex/skills/monke-delegate/SKILL.md" 'Codex skill'
+remove_if_identical "$codex_home/skills/monke-delegate/agents/openai.yaml" \
+    "$repo_dir/codex/skills/monke-delegate/agents/openai.yaml" 'Codex skill metadata'
 remove_if_identical "$codex_home/skills/compact-markdown/SKILL.md" \
     "$repo_dir/codex/skills/compact-markdown/SKILL.md" 'Codex skill'
 remove_if_identical "$codex_home/skills/compact-markdown/agents/openai.yaml" \
@@ -208,8 +208,8 @@ remove_if_identical "$codex_home/skills/reuse-first/agents/openai.yaml" \
     "$repo_dir/codex/skills/reuse-first/agents/openai.yaml" 'Codex skill metadata'
 remove_if_identical "$codex_home/skills/reuse-first/references/tooling.md" \
     "$repo_dir/codex/skills/reuse-first/references/tooling.md" 'Codex skill reference'
-remove_if_identical "$bin_dir/scodex" "$repo_dir/bin/scodex" 'launcher'
-remove_if_identical "$bin_dir/scriptorium-preferences.sh" "$repo_dir/scripts/preferences.sh" 'launcher helper'
+remove_if_identical "$bin_dir/monke" "$repo_dir/bin/monke" 'launcher'
+remove_if_identical "$bin_dir/monke-preferences.sh" "$repo_dir/scripts/preferences.sh" 'launcher helper'
 
 if [[ -e $fish_target ]]; then
     if cmp -s -- "$fish_target" "$fish_expected_plain"; then
@@ -227,7 +227,7 @@ for target in \
     "$state_dir/deployed-commit" "$state_dir/update.state" "$state_dir/last-update.log" \
     "$state_dir/update.lock" "$state_dir/tools-update-check" \
     "$state_dir/tools-reconfigure-required"; do
-    remove_owned_file "$target" 'Scriptorium state'
+    remove_owned_file "$target" 'Monke state'
 done
 
 # These paths are populated only by the optional-tools runtime. Other XDG content, including
@@ -238,8 +238,8 @@ for target in "$data_dir/runtime" "$data_dir/mise" "$cache_dir/mise" "$state_dir
     printf 'Removed optional-tools data: %s\n' "$target"
 done
 
-remove_empty_dir "$codex_home/skills/scriptorium-delegate/agents"
-remove_empty_dir "$codex_home/skills/scriptorium-delegate"
+remove_empty_dir "$codex_home/skills/monke-delegate/agents"
+remove_empty_dir "$codex_home/skills/monke-delegate"
 remove_empty_dir "$codex_home/skills/compact-markdown/agents"
 remove_empty_dir "$codex_home/skills/compact-markdown"
 remove_empty_dir "$codex_home/skills/reuse-first/agents"
@@ -262,5 +262,5 @@ else
 fi
 remove_empty_dir "$data_dir"
 
-printf 'Scriptorium uninstall complete. Backups remain in %s; user configuration and modified assets were preserved.\n' \
+printf 'Monke uninstall complete. Backups remain in %s; user configuration and modified assets were preserved.\n' \
     "$state_dir/backups"

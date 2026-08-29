@@ -2,9 +2,9 @@
 set -euo pipefail
 
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}/scriptorium
-data_dir=${XDG_DATA_HOME:-"$HOME/.local/share"}/scriptorium
-state_dir=${XDG_STATE_HOME:-"$HOME/.local/state"}/scriptorium
+config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}/monke
+data_dir=${XDG_DATA_HOME:-"$HOME/.local/share"}/monke
+state_dir=${XDG_STATE_HOME:-"$HOME/.local/state"}/monke
 bin_dir=${XDG_BIN_HOME:-"$HOME/.local/bin"}
 preferences_file=$config_dir/preferences
 source "$repo_dir/scripts/preferences.sh"
@@ -123,8 +123,8 @@ developer_instructions_file_choice=${developer_instructions_file_choice:-$saved_
 case $shell_choice in bash|zsh|fish) ;; *) shell_choice=bash ;; esac
 
 if [[ $mode == interactive && -t 0 ]]; then
-    update_choice=$(prompt_boolean 'Check for Scriptorium updates when scodex starts?' "$saved_update")
-    tools_choice=$(prompt_boolean 'Configure optional scodex tools?' "$saved_tools")
+    update_choice=$(prompt_boolean 'Check for Monke updates when monke starts?' "$saved_update")
+    tools_choice=$(prompt_boolean 'Configure optional monke tools?' "$saved_tools")
     developer_instructions_choice=$saved_developer_instructions
 elif [[ $mode == saved ]]; then
     update_choice=$saved_update; tools_choice=$saved_tools
@@ -192,21 +192,21 @@ else
 fi
 "$repo_dir/codex/scripts/render-agents.sh"
 
-SCRIPTORIUM_SHELL=$shell_choice "$repo_dir/scripts/install-shell-hook.sh" "$shell_rc"
+MONKE_SHELL=$shell_choice "$repo_dir/scripts/install-shell-hook.sh" "$shell_rc"
 
-wrapper_target=$bin_dir/scodex
+wrapper_target=$bin_dir/monke
 helper_source=$repo_dir/scripts/preferences.sh
-helper_target=$bin_dir/scriptorium-preferences.sh
+helper_target=$bin_dir/monke-preferences.sh
 wrapper_backup=
 helper_backup=
 prepare_backup_target "$wrapper_target"
-if [[ ! -f $wrapper_target ]] || ! cmp -s -- "$repo_dir/bin/scodex" "$wrapper_target"; then
-    wrapper_candidate=$(mktemp "$bin_dir/.scodex.XXXXXX")
+if [[ ! -f $wrapper_target ]] || ! cmp -s -- "$repo_dir/bin/monke" "$wrapper_target"; then
+    wrapper_candidate=$(mktemp "$bin_dir/.monke.XXXXXX")
     if [[ -e $wrapper_target ]]; then
         backup_target "$wrapper_target" wrapper_backup
         chmod a-x -- "$wrapper_backup"
     fi
-    cp -- "$repo_dir/bin/scodex" "$wrapper_candidate"
+    cp -- "$repo_dir/bin/monke" "$wrapper_candidate"
     chmod 700 -- "$wrapper_candidate"
     mv -- "$wrapper_candidate" "$wrapper_target"
     printf 'Installed command: %s\n' "$wrapper_target"
@@ -234,7 +234,7 @@ fi
 preferences_committed=0
 rm -f -- "$preferences_previous"
 trap - EXIT
-printf '\nScriptorium configured. Run scodex configure to change your choices.\n'
+printf '\nMonke configured. Run monke configure to change your choices.\n'
 if [[ $tools_choice == 1 ]]; then
     "$repo_dir/scripts/tools-manager.sh" system-summary
 fi

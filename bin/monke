@@ -3,16 +3,16 @@ set -euo pipefail
 
 launcher_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 repo_dir=$(cd -- "$launcher_dir/.." && pwd)
-config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}/scriptorium
-state_dir=${XDG_STATE_HOME:-"$HOME/.local/state"}/scriptorium
+config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}/monke
+state_dir=${XDG_STATE_HOME:-"$HOME/.local/state"}/monke
 preferences_file=$config_dir/preferences
 tools_env=$config_dir/tools-env.sh
-if [[ -f $launcher_dir/scriptorium-preferences.sh ]]; then
-    source "$launcher_dir/scriptorium-preferences.sh"
+if [[ -f $launcher_dir/monke-preferences.sh ]]; then
+    source "$launcher_dir/monke-preferences.sh"
 elif [[ -f $repo_dir/scripts/preferences.sh ]]; then
     source "$repo_dir/scripts/preferences.sh"
 else
-    printf 'scodex: managed preference parser is unavailable.\n' >&2
+    printf 'monke: managed preference parser is unavailable.\n' >&2
     exit 1
 fi
 
@@ -20,7 +20,7 @@ load_tools_env() {
     if [[ -f $tools_env ]]; then
         source "$tools_env"
     else
-        export SCRIPTORIUM_ACTIVE=1 SCRIPTORIUM_TOOLS=
+        export MONKE_ACTIVE=1 MONKE_TOOLS=
     fi
 }
 
@@ -54,7 +54,7 @@ load_developer_instructions() {
         [[ $body != "$content" && -n $body ]] || return 1
         content=$body
     fi
-    content='You are Scriptorium, not Codex.'$'\n\n'$content
+    content='You are Monke, not Codex.'$'\n\n'$content
     printf -v developer_instructions_value '%s' "$content"
 }
 
@@ -64,17 +64,17 @@ review_pending_tools() {
     local pending_names
     [[ -s $pending_tools && $(read_pref "$preferences_file" tools 0) == 1 ]] || return 0
     pending_names=$(paste -sd, "$pending_tools")
-    printf 'scodex: new optional tools require your selection: %s\n' "$pending_names"
+    printf 'monke: new optional tools require your selection: %s\n' "$pending_names"
     if [[ -t 0 && -t 1 && -x $tools_manager ]]; then
         if "$tools_manager" configure --review "$pending_names"; then
             "$repo_dir/codex/scripts/render-agents.sh"
             rm -f -- "$pending_tools"
             load_tools_env
         else
-            printf 'scodex: tool selection remains pending; Codex will continue\n' >&2
+            printf 'monke: tool selection remains pending; Codex will continue\n' >&2
         fi
     else
-        printf 'scodex: run `scodex tools configure` in a terminal to review the tool list\n'
+        printf 'monke: run `monke tools configure` in a terminal to review the tool list\n'
     fi
 }
 
@@ -83,17 +83,17 @@ review_system_tool_replacements() {
     [[ -x $tools_manager && $(read_pref "$preferences_file" tools 0) == 1 ]] || return 0
     names=$("$tools_manager" system-replacements | paste -sd, -)
     [[ -n $names ]] || return 0
-    printf 'scodex: system copies now available for locally managed tools: %s\n' "$names"
+    printf 'monke: system copies now available for locally managed tools: %s\n' "$names"
     if [[ -t 0 && -t 1 ]]; then
         read -r -p 'Remove the local copies and use the system versions? [Y/n] ' answer
         if [[ ${answer,,} != n && ${answer,,} != no ]]; then
             "$tools_manager" adopt-system
             "$repo_dir/codex/scripts/render-agents.sh"
             load_tools_env
-            printf 'scodex: switched to the system versions\n'
+            printf 'monke: switched to the system versions\n'
         fi
     else
-        printf 'scodex: run `scodex tools adopt-system` to remove the local copies\n'
+        printf 'monke: run `monke tools adopt-system` to remove the local copies\n'
     fi
 }
 
@@ -170,7 +170,7 @@ session_usage() {
 }
 
 read_project_stats() {
-    local stats_file=$PWD/.scriptorium/stats key=$1
+    local stats_file=$PWD/.monke/stats key=$1
     [[ -f $stats_file && ! -L $stats_file ]] || return 0
     sed -n "s/^${key}=//p" "$stats_file" | tail -n 1
 }
@@ -249,14 +249,14 @@ show_stats() {
             -printf '%T@ %p\n' 2>/dev/null | sort -nr | cut -d' ' -f2-)
     fi
     if [[ ! -f ${session_file:-} ]] || ! valid_thread_id "$thread_id"; then
-        printf 'Scriptorium usage\n\nNo session found for this project.\n'
+        printf 'Monke usage\n\nNo session found for this project.\n'
         return 0
     fi
 
     usage=$(session_usage "$session_file" 0)
     read -r main_total main_cached main_last main_last_cached <<<"$usage"
     if [[ ! $main_total =~ ^[0-9]+$ || $main_total == 0 ]]; then
-        printf 'Scriptorium usage\n\nNo token telemetry is available for this project.\n'
+        printf 'Monke usage\n\nNo token telemetry is available for this project.\n'
         return 0
     fi
     run_started=$(read_project_stats run_started_at)
@@ -293,18 +293,18 @@ show_stats() {
             delegate_run_cached += child_run_cached, saved_context += estimate ))
     done < <(find "$codex_home/sessions" -type f -name '*.jsonl' -print 2>/dev/null)
 
-    printf 'Scriptorium usage\n'
+    printf 'Monke usage\n'
     printf 'Thread: %s\n\n' "$thread_id"
     printf '  %-22s %15s %15s\n' 'Scope' 'Total tokens' 'Cached input'
     printf '  %-22s %15s %15s\n' 'Entire thread' \
         "$(format_number "$(( main_total + delegate_total ))")" \
         "$(format_number "$(( main_cached + delegate_cached ))")"
     if (( run_started > 0 )); then
-        printf '  %-22s %15s %15s\n' 'Last scodex run' \
+        printf '  %-22s %15s %15s\n' 'Last monke run' \
             "$(format_number "$(( main_run + delegate_run ))")" \
             "$(format_number "$(( main_run_cached + delegate_run_cached ))")"
     else
-        printf '  %-22s %15s %15s\n' 'Last scodex run' 'not recorded' '-'
+        printf '  %-22s %15s %15s\n' 'Last monke run' 'not recorded' '-'
     fi
     printf '  %-22s %15s %15s\n' 'Last main-agent turn' \
         "$(format_number "$main_last")" "$(format_number "$main_last_cached")"
@@ -318,7 +318,7 @@ show_stats() {
 
 record_project_run() {
     local codex_home=$1 run_started=$2 project_dir=$3 candidate meta cwd thread_id
-    local marker_dir=$project_dir/.scriptorium marker_file tmp
+    local marker_dir=$project_dir/.monke marker_file tmp
     while IFS= read -r candidate; do
         meta=$(awk 'index($0, "\"session_meta\"") { print; exit }' "$candidate")
         is_root_session_meta "$meta" || continue
@@ -327,7 +327,7 @@ record_project_run() {
         thread_id=$(sed -n 's/.*"id":"\([0-9a-f-]*\)".*/\1/p' <<<"$meta")
         valid_thread_id "$thread_id" || continue
         if [[ -L $marker_dir ]]; then
-            printf 'scodex: refusing to write project stats through symlink: %s\n' \
+            printf 'monke: refusing to write project stats through symlink: %s\n' \
                 "$marker_dir" >&2
             return 0
         fi
@@ -355,7 +355,7 @@ configured_repo=$(read_pref "$preferences_file" repo_dir "")
 if [[ -n $configured_repo ]]; then
     repo_dir=$configured_repo
     if [[ ! -d $repo_dir/.git ]]; then
-        printf 'scodex: configured repository is invalid: %s\n' "$repo_dir" >&2
+        printf 'monke: configured repository is invalid: %s\n' "$repo_dir" >&2
         exit 1
     fi
 fi
@@ -367,14 +367,14 @@ case ${1:-} in
         ;;
     stats)
         if (( $# != 1 )); then
-            printf 'scodex: stats does not accept arguments.\n' >&2
+            printf 'monke: stats does not accept arguments.\n' >&2
             exit 2
         fi
         show_stats
         exit 0
         ;;
     update)
-        printf 'scodex: `scodex update` was removed; start scodex in a terminal to install updates.\n' >&2
+        printf 'monke: `monke update` was removed; start monke in a terminal to install updates.\n' >&2
         exit 2
         ;;
     configure)
@@ -391,7 +391,7 @@ case ${1:-} in
         tools_manager=$repo_dir/scripts/tools-manager.sh
         if [[ -x $tools_manager ]]; then
             if [[ ${1:-} == status ]]; then
-                printf 'scodex: `scodex tools status` was removed; use `scodex tools`.\n' >&2
+                printf 'monke: `monke tools status` was removed; use `monke tools`.\n' >&2
                 exit 2
             fi
             tools_action=${1:-status}
@@ -403,30 +403,30 @@ case ${1:-} in
             esac
             exit 0
         fi
-        printf 'scodex: tools manager is not available.\n'
+        printf 'monke: tools manager is not available.\n'
         exit 1
         ;;
 esac
 
 case ${1:-} in
     --no-update)
-        printf 'scodex: `--no-update` was removed; configure update checks with `scodex configure`.\n' >&2
+        printf 'monke: `--no-update` was removed; configure update checks with `monke configure`.\n' >&2
         exit 2
         ;;
     --cheap|cheap|--normal|normal|--hard|hard)
-        printf 'scodex: profile selectors were removed; scodex always uses Sol.\n' >&2
+        printf 'monke: profile selectors were removed; monke always uses Sol.\n' >&2
         exit 2
         ;;
 esac
 
-skip_update=${SCRIPTORIUM_INTERNAL_SKIP_UPDATE_CHECK:-0}
-unset SCRIPTORIUM_INTERNAL_SKIP_UPDATE_CHECK
+skip_update=${MONKE_INTERNAL_SKIP_UPDATE_CHECK:-0}
+unset MONKE_INTERNAL_SKIP_UPDATE_CHECK
 if [[ $skip_update != 1 ]] && [[ $(read_pref "$preferences_file" update_check "$(read_pref "$preferences_file" auto_update 1)") != 0 ]]; then
     update_status=0
-    SCRIPTORIUM_LAUNCH_UPDATE=1 "$repo_dir/scripts/update-repository.sh" || update_status=$?
+    MONKE_LAUNCH_UPDATE=1 "$repo_dir/scripts/update-repository.sh" || update_status=$?
     if (( update_status == 10 )); then
-        export SCRIPTORIUM_INTERNAL_SKIP_UPDATE_CHECK=1
-        exec "$launcher_dir/scodex" "$@"
+        export MONKE_INTERNAL_SKIP_UPDATE_CHECK=1
+        exec "$launcher_dir/monke" "$@"
     fi
 fi
 load_tools_env
@@ -441,7 +441,7 @@ if [[ -x $tools_manager ]]; then
 fi
 
 if ! command -v codex >/dev/null 2>&1; then
-    printf 'scodex: codex is not installed or is missing from PATH.\n' >&2
+    printf 'monke: codex is not installed or is missing from PATH.\n' >&2
     exit 127
 fi
 
@@ -450,7 +450,7 @@ project_dir=$PWD
 status=0
 shell_path=$(toml_basic_string "$PATH")
 codex_args=(
-    --profile scriptorium
+    --profile monke
     -c shell_environment_policy.inherit=all
     -c "shell_environment_policy.set.PATH=$shell_path"
 )
@@ -465,7 +465,7 @@ if [[ $(read_pref "$preferences_file" developer_instructions 1) != 0 ]]; then
         developer_instructions_toml=$(toml_basic_string "$developer_instructions_value")
         codex_args+=( -c "developer_instructions=$developer_instructions_toml" )
     else
-        printf 'scodex: developer instructions unavailable; continuing without them.\n' >&2
+        printf 'monke: developer instructions unavailable; continuing without them.\n' >&2
     fi
 fi
 codex "${codex_args[@]}" "$@" || status=$?

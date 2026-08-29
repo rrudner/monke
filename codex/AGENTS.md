@@ -61,9 +61,9 @@ Optimize for correct results with minimal context and tool output. Follow more s
 ## Delegation and cost control
 
 - For coding, diagnosis, research, or review likely to inspect more than one file, run
-  `scodex context` once before broad exploration. Never let missing telemetry block work.
+  `monke context` once before broad exploration. Never let missing telemetry block work.
 - Keep small, single-goal work local. Before reading unopened material, invoke
-  `$scriptorium-delegate` when independent work can run concurrently or expected new context
+  `$monke-delegate` when independent work can run concurrently or expected new context
   exceeds: `low` = 64 KB, `medium` = 24 KB or more than 8 substantive files, `high` = 8 KB or more
   than 3 substantive files. Treat `unknown` as `low`; small stubs do not qualify by count alone.
 - Delegate only unopened context, normally to one worker, following the skill's routing and result

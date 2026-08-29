@@ -1,4 +1,4 @@
-# Scriptorium contributor instructions
+# Monke contributor instructions
 
 ## Scope
 
@@ -14,14 +14,14 @@
 - Keep all user-facing script output, prompts, comments, and documentation in English.
 - Avoid generic AI prose and em or en dashes in documentation; use plain punctuation.
 - Preserve existing installer flags and saved preference keys unless a migration is included.
-- Updates run only from `scodex`, stay fast-forward-only, and never block Codex startup.
+- Updates run only from `monke`, stay fast-forward-only, and never block Codex startup.
 - Document every new managed user file as replaced, merged, or marker-edited. Never replace the
-  base Codex config. Change user-owned AGENTS, Bash, and Zsh files only inside Scriptorium markers;
+  base Codex config. Change user-owned AGENTS, Bash, and Zsh files only inside Monke markers;
   use a namespaced Fish file.
 
 ## Verification
 
-- Run `bash -n install.sh bin/scodex scripts/*.sh codex/scripts/*.sh tests/*.sh` after
+- Run `bash -n install.sh bin/monke scripts/*.sh codex/scripts/*.sh tests/*.sh` after
   shell changes.
 - Run `./tests/smoke.sh` after installer, updater, preference, or Codex merge changes.
 - Before finishing, check changed files for home data, credentials, generated archives, and

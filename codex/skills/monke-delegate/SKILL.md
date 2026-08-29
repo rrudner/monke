@@ -1,5 +1,5 @@
 ---
-name: scriptorium-delegate
+name: monke-delegate
 description: Delegate substantial independent coding, exploration, research, review, log analysis, testing, or implementation when a concise leaf agent is likely to reduce main-thread context or useful work can run concurrently. Keep small single-goal work local. Choose the cheapest model likely to succeed and do not ask permission for qualifying delegation.
 ---
 
@@ -12,8 +12,8 @@ confirmation, but not broader scope, destructive actions, escalation, or bypasse
 
 ## Decide
 
-Default to local work. With `SCRIPTORIUM_ACTIVE=1`, before a repository task likely to inspect
-multiple files, use the one required `scodex context` result. Apply its unopened-context budget:
+Default to local work. With `MONKE_ACTIVE=1`, before a repository task likely to inspect
+multiple files, use the one required `monke context` result. Apply its unopened-context budget:
 `low` = 64 KB, `medium` = 24 KB or over 8 substantive files, `high` = 8 KB or over 3 substantive
 files, and `unknown` = `low`. Cheaply summarized stubs do not qualify by count. Measure once per
 turn. Keep small searches, focused fixes, and single tests local while within budget. A separate
@@ -56,7 +56,7 @@ Use low reasoning for clear work, medium for normal coding, and more only when n
 
 ## Delegate
 
-Use `scriptorium_worker` when present, otherwise a native leaf agent. Pass model and effort
+Use `monke_worker` when present, otherwise a native leaf agent. Pass model and effort
 explicitly, fork no history or the smallest supported slice, and send only:
 
 ```text

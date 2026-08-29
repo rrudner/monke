@@ -13,5 +13,5 @@ default_subagent_model = "gpt-5.3-codex-spark"
 default_subagent_reasoning_effort = "low"
 
 [[skills.config]]
-path = "skills/scriptorium-delegate/SKILL.md"
+path = "skills/monke-delegate/SKILL.md"
 enabled = true

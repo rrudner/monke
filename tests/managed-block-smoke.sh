@@ -2,66 +2,66 @@
 set -euo pipefail
 
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-test_root=$(mktemp -d /tmp/scriptorium-managed-block.XXXXXX)
+test_root=$(mktemp -d /tmp/monke-managed-block.XXXXXX)
 trap 'rm -rf -- "$test_root"' EXIT
 export XDG_STATE_HOME=$test_root/state
 
 source "$repo_dir/scripts/managed-block.sh"
 
-backup_root=${XDG_STATE_HOME:-"$HOME/.local/state"}/scriptorium/backups
+backup_root=${XDG_STATE_HOME:-"$HOME/.local/state"}/monke/backups
 
 managed_file=$test_root/managed.sh
 cat >"$managed_file" <<'EOF'
 export EXAMPLE=1
-# >>> scriptorium managed >>>
+# >>> monke managed >>>
 export BLOCK=1
-# <<< scriptorium managed <<<
+# <<< monke managed <<<
 export DONE=1
 EOF
 
-if ! validate_managed_markers "$managed_file" '# >>> scriptorium managed >>>' '# <<< scriptorium managed <<<'; then
+if ! validate_managed_markers "$managed_file" '# >>> monke managed >>>' '# <<< monke managed <<<'; then
     printf 'Expected valid managed markers to validate.\n' >&2
     exit 1
 fi
 
 cat >"$managed_file" <<'EOF'
 export EXAMPLE=1
-# >>> scriptorium managed >>>
+# >>> monke managed >>>
 export BLOCK=1
 EOF
-if validate_managed_markers "$managed_file" '# >>> scriptorium managed >>>' '# <<< scriptorium managed <<<'; then
+if validate_managed_markers "$managed_file" '# >>> monke managed >>>' '# <<< monke managed <<<'; then
     printf 'Expected unterminated marker block to fail.\n' >&2
     exit 1
 fi
 
 cat >"$managed_file" <<'EOF'
 export EXAMPLE=1
-# >>> scriptorium managed >>>
+# >>> monke managed >>>
 export BLOCK=1
-# <<< scriptorium managed <<<
-# <<< scriptorium managed <<<
+# <<< monke managed <<<
+# <<< monke managed <<<
 EOF
-if validate_managed_markers "$managed_file" '# >>> scriptorium managed >>>' '# <<< scriptorium managed <<<'; then
+if validate_managed_markers "$managed_file" '# >>> monke managed >>>' '# <<< monke managed <<<'; then
     printf 'Expected mismatched closing marker count to fail.\n' >&2
     exit 1
 fi
 
 cat >"$managed_file" <<'EOF'
 export EXAMPLE=1
-# >>> scriptorium managed >>>
+# >>> monke managed >>>
 export BLOCK=1
-# <<< scriptorium managed <<<
+# <<< monke managed <<<
 export DONE=1
 EOF
 cp -- "$managed_file" "$test_root/original-managed.sh"
 legacy_backup=
-if ! remove_managed_block "$managed_file" '# >>> scriptorium managed >>>' \
-    '# <<< scriptorium managed <<<' legacy_backup; then
+if ! remove_managed_block "$managed_file" '# >>> monke managed >>>' \
+    '# <<< monke managed <<<' legacy_backup; then
     printf 'Expected valid managed markers to be removed.\n' >&2
     exit 1
 fi
-if grep -Fqx '# >>> scriptorium managed >>>' "$managed_file" \
-    || grep -Fqx '# <<< scriptorium managed <<<' "$managed_file"; then
+if grep -Fqx '# >>> monke managed >>>' "$managed_file" \
+    || grep -Fqx '# <<< monke managed <<<' "$managed_file"; then
     printf 'Expected managed block content to be removed.\n' >&2
     exit 1
 fi
@@ -74,33 +74,33 @@ fi
 # Reapplying identical bytes must not create another backup.
 cat >"$managed_file" <<'EOF'
 export EXAMPLE=1
-# >>> scriptorium managed >>>
+# >>> monke managed >>>
 export BLOCK=1
-# <<< scriptorium managed <<<
+# <<< monke managed <<<
 export DONE=1
 EOF
 block_content=$(mktemp "$test_root/content.XXXXXX")
 printf 'export BLOCK=1\n' >"$block_content"
 update_managed_block "$managed_file" "$block_content" \
-    '# >>> scriptorium managed >>>' '# <<< scriptorium managed <<<' append >/dev/null
+    '# >>> monke managed >>>' '# <<< monke managed <<<' append >/dev/null
 backup_before=$(find "$backup_root" -type f -name 'backup-*' 2>/dev/null | wc -l)
 before_bytes=$(mktemp "$test_root/before.XXXXXX")
 cp -- "$managed_file" "$before_bytes"
 update_managed_block "$managed_file" "$block_content" \
-    '# >>> scriptorium managed >>>' '# <<< scriptorium managed <<<' append >/dev/null
+    '# >>> monke managed >>>' '# <<< monke managed <<<' append >/dev/null
 cmp -s "$before_bytes" "$managed_file"
 [[ $(find "$backup_root" -type f -name 'backup-*' 2>/dev/null | wc -l) -eq $backup_before ]]
 rm -f -- "$block_content" "$before_bytes"
 
 # Replacing a block must preserve every user byte around it.
-printf 'user-prefix\n\n# >>> scriptorium managed >>>\nold\n# <<< scriptorium managed <<<\nuser-suffix' \
+printf 'user-prefix\n\n# >>> monke managed >>>\nold\n# <<< monke managed <<<\nuser-suffix' \
     >"$managed_file"
 block_content=$(mktemp "$test_root/content.XXXXXX")
 printf 'new\n' >"$block_content"
 update_managed_block "$managed_file" "$block_content" \
-    '# >>> scriptorium managed >>>' '# <<< scriptorium managed <<<' append >/dev/null
+    '# >>> monke managed >>>' '# <<< monke managed <<<' append >/dev/null
 expected_file=$test_root/expected-managed.sh
-printf 'user-prefix\n\n# >>> scriptorium managed >>>\nnew\n# <<< scriptorium managed <<<\nuser-suffix' \
+printf 'user-prefix\n\n# >>> monke managed >>>\nnew\n# <<< monke managed <<<\nuser-suffix' \
     >"$expected_file"
 cmp -s "$expected_file" "$managed_file"
 rm -f -- "$block_content"
@@ -127,11 +127,11 @@ migration_dir=$(backup_target_dir "$migration_target")
 
 cat >"$managed_file" <<'EOF'
 export EXAMPLE=1
-# >>> scriptorium managed >>>
+# >>> monke managed >>>
 export BLOCK=1
 EOF
-if remove_managed_block "$managed_file" '# >>> scriptorium managed >>>' \
-    '# <<< scriptorium managed <<<' > /dev/null; then
+if remove_managed_block "$managed_file" '# >>> monke managed >>>' \
+    '# <<< monke managed <<<' > /dev/null; then
     printf 'Expected malformed removal to fail.\n' >&2
     exit 1
 fi

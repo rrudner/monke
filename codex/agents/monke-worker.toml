@@ -1,4 +1,4 @@
-name = "scriptorium_worker"
+name = "monke_worker"
 description = "Concise leaf worker for bounded exploration, analysis, tests, review, or implementation."
 
 model_verbosity = "low"

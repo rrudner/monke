@@ -1,37 +1,40 @@
-# Scriptorium 🐒
+# Monke 🐒
 
-**A portable, updateable Codex CLI workspace for Linux.** It deploys Codex profiles,
+**A portable, updateable OpenAI Codex CLI workspace for Linux.** It deploys Codex profiles,
 instructions, terminal integration, and optional developer tools consistently without owning your
-existing configuration. Start everything with `scodex`; update checks run there, never at shell
-login. A competent monkey crew keeps the terminal ship and its scrolls in order; you keep the
-helm.
+existing configuration. Start everything with `monke`; update checks run there, never at shell
+login. A competent monkey crew keeps the terminal tools sorted; you choose the job.
 
 ## Quick start 🍌
 
-Requires Codex, Git, Bash, standard GNU utilities, and util-linux (`flock`).
+Requires OpenAI Codex CLI, Git, Bash, standard GNU utilities, and util-linux (`flock`). Monke is
+an independent third-party project and is not affiliated with or endorsed by OpenAI.
 
 ```bash
-git clone https://github.com/rrudner/scriptorium.git ~/.local/share/scriptorium/repo
-~/.local/share/scriptorium/repo/install.sh
+git clone https://github.com/rrudner/monke.git ~/.local/share/monke/repo
+~/.local/share/monke/repo/install.sh
 ```
 
 The Bash, Zsh, and Fish installer lets you choose:
 
-- update checks on `scodex` startup, enabled by default;
+- update checks on `monke` startup, enabled by default;
 - isolated optional tools, disabled by default.
 
 Change these choices at any time with:
 
 ```bash
-scodex configure
+monke configure
 ```
 
 For unattended installation and all available flags, run `./install.sh --help`.
 
+This is a breaking rename from Scriptorium and `scodex`. Monke does not migrate or remove the old
+installation, and installing both versions together is unsupported.
+
 ## Uninstall
 
-Run `scodex uninstall` and confirm, or use `scodex uninstall --yes` for automation. It removes
-only matching Scriptorium assets and marker-managed integration, retaining user files, timestamped
+Run `monke uninstall` and confirm, or use `monke uninstall --yes` for automation. It removes
+only matching Monke assets and marker-managed integration, retaining user files, timestamped
 backups, and modified assets. A clean repository in the default data location is removed last;
 pass `--keep-repo` to retain it. Invalid markers or symbolic-link paths stop before any file is
 changed.
@@ -39,55 +42,55 @@ changed.
 ## Everyday commands
 
 ```bash
-scodex                         # Start with the Sol profile
-scodex configure               # Change saved integration choices
-scodex uninstall --keep-repo   # Remove integration and keep this repository
-scodex tools configure         # Select optional tools in a terminal UI
-scodex tools update            # Update locally managed tools
-scodex tools remove NAME       # Remove a tool from the selection
-scodex stats                   # Show readable token usage for the current project
+monke                         # Start with the Sol profile
+monke configure               # Change saved integration choices
+monke uninstall --keep-repo   # Remove integration and keep this repository
+monke tools configure         # Select optional tools in a terminal UI
+monke tools update            # Update locally managed tools
+monke tools remove NAME       # Remove a tool from the selection
+monke stats                   # Show readable token usage for the current project
 ```
 
-## How it works 📜
+## How it works 🛠️
 
 | Component | Location | Ownership |
 |---|---|---|
-| Repository | `~/.local/share/scriptorium/repo` | Git-managed |
-| Preferences | `~/.config/scriptorium/preferences` | Scriptorium-managed |
-| Launcher helper | `~/.local/bin/scriptorium-preferences.sh` | Scriptorium-managed |
-| Codex profile | `~/.codex/scriptorium.config.toml` | Scriptorium-managed |
+| Repository | `~/.local/share/monke/repo` | Git-managed |
+| Preferences | `~/.config/monke/preferences` | Monke-managed |
+| Launcher helper | `~/.local/bin/monke-preferences.sh` | Monke-managed |
+| Codex profile | `~/.codex/monke.config.toml` | Monke-managed |
 | Codex instructions | `~/.codex/AGENTS.md` | Marker-managed block |
-| Codex skills | `~/.codex/skills/{compact-markdown,reuse-first,scriptorium-delegate}` | Unchanged or backed up, then replaced |
+| Codex skills | `~/.codex/skills/{compact-markdown,reuse-first,monke-delegate}` | Unchanged or backed up, then replaced |
 | Session instructions | `codex/developer-instructions.md` | Git-managed |
 | Shell hooks | User configuration files | Marker-managed blocks |
 | Optional tool data | Matching XDG data/cache/state directories | Isolated |
-| Project token statistics | `.scriptorium/stats` in a launched project | Replaced after each completed `scodex` run |
+| Project token statistics | `.monke/stats` in a launched project | Replaced after each completed `monke` run |
 
-`scodex` loads its namespaced Sol profile, exposes only the selected tool environment, optionally
+`monke` loads its namespaced Sol profile, exposes only the selected tool environment, optionally
 checks for updates, then starts Codex. Your shell changes only through the selected small launcher.
 
-Each `scodex` session loads the repository's Monke instructions and passes them through Codex's
+Each `monke` session loads the repository's Monke instructions and passes them through Codex's
 `developer_instructions` setting, identifies the
-session as Scriptorium, and reads it once. Use
-`scodex configure --developer-instructions-file /absolute/path/to/another/SKILL.md` to select any
-other instruction file, or `scodex configure --without-developer-instructions` to disable this
+session as Monke, and reads it once. Use
+`monke configure --developer-instructions-file /absolute/path/to/another/SKILL.md` to select any
+other instruction file, or `monke configure --without-developer-instructions` to disable this
 behavior. A missing or invalid file produces one warning and does not prevent Codex from starting.
 
-Scriptorium keeps small, single-goal work local. Before broad exploration it reads only current
-thread token counters through `scodex context`, lowering the delegation threshold as the main
+Monke keeps small, single-goal work local. Before broad exploration it reads only current
+thread token counters through `monke context`, lowering the delegation threshold as the main
 context fills. It delegates only unopened file or log context replaceable by a concise result; a
 separate Spark usage limit alone is not a token saving. Missing or incompatible telemetry uses the
 conservative low-pressure threshold.
 
-`scodex stats` sums current-project-thread telemetry, including delegates, and reports the complete
+`monke stats` sums current-project-thread telemetry, including delegates, and reports the complete
 thread, last completed launcher run (including `resume`), and last main-agent turn. Its project
 marker contains only the thread ID and run start time.
 
 ## Safe by design
 
 - `~/.codex/config.toml` is never replaced.
-- User-owned files are edited only between explicit Scriptorium markers.
-- Changed files are backed up under `${XDG_STATE_HOME:-$HOME/.local/state}/scriptorium/backups`,
+- User-owned files are edited only between explicit Monke markers.
+- Changed files are backed up under `${XDG_STATE_HOME:-$HOME/.local/state}/monke/backups`,
   in a directory named by the target path's full SHA-256. Each target keeps at most three
   `backup-*` snapshots. Legacy backups are migrated only when they match the strict
   `target.backup-YYYYMMDDTHHMMSSZ` format; `backup-user` files remain untouched.
@@ -98,7 +101,7 @@ marker contains only the thread ID and run start time.
 - Failed installation restores the previous saved preferences.
 - Modified legacy assets are preserved and reported.
 
-## Repository updates 🚢
+## Repository updates 🔧
 
 When enabled, startup performs a 10-second Git fetch. For a new commit, choose `Install`, `Later`,
 or `View`. No response within 10 seconds selects `Later`; that commit is snoozed for 24 hours, but
@@ -107,8 +110,8 @@ a newer commit is shown immediately.
 Updates are fast-forward-only and skipped for a dirty or divergent working tree. Network, Git, or
 installation failures never prevent Codex from starting.
 
-When an update adds optional tools, Scriptorium reports them. If enabled, the next interactive
-`scodex` reopens the complete selector with existing choices preselected. New `(new)` entries stay
+When an update adds optional tools, Monke reports them. If enabled, the next interactive
+`monke` reopens the complete selector with existing choices preselected. New `(new)` entries stay
 unchecked until explicit selection; non-interactive launches leave selection pending and show the
 command.
 
@@ -135,16 +138,16 @@ command.
 Optional tools are disabled by default. Once enabled, commands already available on the machine
 are used at any version and omitted from the installer selection. Missing selected tools install
 without administrator access through a pinned, checksum-verified, isolated mise runtime and run
-only inside `scodex`. When a system copy appears later, interactive `scodex` startup offers to
-remove the managed copy; `scodex tools adopt-system` performs the same migration directly.
+only inside `monke`. When a system copy appears later, interactive `monke` startup offers to
+remove the managed copy; `monke tools adopt-system` performs the same migration directly.
 
 Installing missing tools requires `curl` or `wget` and `sha256sum`. Repository updates never
-upgrade tools; `scodex` checks for local tool updates at most weekly and only displays a notice.
+upgrade tools; `monke` checks for local tool updates at most weekly and only displays a notice.
 Playwright CLI requires Node.js 20 or newer, while Lighthouse requires Node.js 22 or newer. If a
-compatible system Node.js is unavailable, Scriptorium keeps the selection but skips installation
+compatible system Node.js is unavailable, Monke keeps the selection but skips installation
 and leaves the affected tool out of the active environment. Selecting either browser tool also
-downloads Chromium without administrator access into Scriptorium's isolated cache. Both tools
-reuse that browser. Scriptorium sets `CHROME_PATH` for Lighthouse and
+downloads Chromium without administrator access into Monke's isolated cache. Both tools
+reuse that browser. Monke sets `CHROME_PATH` for Lighthouse and
 `PLAYWRIGHT_MCP_EXECUTABLE_PATH` for Playwright CLI automatically. Lighthouse can audit pages behind
 HTTP Basic Auth through an `Authorization` header passed with
 `--extra-headers`; keep files containing credentials outside the repository.
@@ -163,7 +166,7 @@ without modifying the real home directory.
 
 ## Overlap policy
 
-Scriptorium installs `reuse-first` and an AGENTS rule that invokes it before work that may duplicate
+Monke installs `reuse-first` and an AGENTS rule that invokes it before work that may duplicate
 existing behavior, ownership, helpers, services, or error handling. Codex then:
 
 - searches for semantic analogs,
@@ -173,12 +176,12 @@ existing behavior, ownership, helpers, services, or error handling. Codex then:
   scope.
 
 Invoke it explicitly with `$reuse-first` when you want an audit or want to force this check before
-a task. Re-run `./install.sh --apply-saved` after updating Scriptorium to deploy the latest skill
+a task. Re-run `./install.sh --apply-saved` after updating Monke to deploy the latest skill
 and AGENTS block.
 
 ## Compact Markdown
 
-Scriptorium installs and uses `compact-markdown` by default for new Markdown and material prose
+Monke installs and uses `compact-markdown` by default for new Markdown and material prose
 edits. New files start compact; existing files keep untouched sections unless whole-file compaction
 is requested. It removes repetition and safely generalizes repeated examples while preserving
 contracts, exact literals, links, warnings, and Markdown structure.

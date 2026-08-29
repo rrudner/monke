@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}/scriptorium
-state_dir=${XDG_STATE_HOME:-"$HOME/.local/state"}/scriptorium
+config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}/monke
+state_dir=${XDG_STATE_HOME:-"$HOME/.local/state"}/monke
 preferences_file=$config_dir/preferences
 state_file=$state_dir/update.state
 log_file=$state_dir/last-update.log
@@ -12,8 +12,8 @@ repo_dir_script=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 tools_manager=$repo_dir_script/tools-manager.sh
 source "$repo_dir_script/preferences.sh"
 
-if [[ ${SCRIPTORIUM_LAUNCH_UPDATE:-0} != 1 ]]; then
-    # keep login hook from checking updates; updates are now handled through scodex launch
+if [[ ${MONKE_LAUNCH_UPDATE:-0} != 1 ]]; then
+    # keep login hook from checking updates; updates are now handled through monke launch
     exit 0
 fi
 
@@ -41,13 +41,13 @@ log() {
 run_logged_with_heartbeat() {
     local activity=$1 pid heartbeat_pid status
     shift
-    printf 'scodex: %s\n' "$activity"
+    printf 'monke: %s\n' "$activity"
     "$@" >>"$log_file" 2>&1 &
     pid=$!
     (
         while sleep 10; do
             kill -0 "$pid" 2>/dev/null || exit 0
-            printf 'scodex: still working, %s (details: %s)\n' "$activity" "$log_file"
+            printf 'monke: still working, %s (details: %s)\n' "$activity" "$log_file"
         done
     ) &
     heartbeat_pid=$!
@@ -103,7 +103,7 @@ fi
 if [[ $current_commit == "$remote_commit" ]]; then
     log "already up to date"
     printf '%s\n' "$current_commit" >"$deployed_file"
-    printf 'scodex: already up to date\n'
+    printf 'monke: already up to date\n'
     exit 0
 fi
 
@@ -123,16 +123,16 @@ install_update() {
     local catalog_before new_tools merge_pending=0
     if [[ -n $(git -C "$repo_dir" status --porcelain 2>>"$log_file") ]]; then
         log "working tree has local changes"
-        printf 'scodex: repository has local changes; update skipped\n'
+        printf 'monke: repository has local changes; update skipped\n'
         return 0
     fi
     catalog_before=$(mktemp "$state_dir/.tools-catalog-before.XXXXXX")
     cp -- "$repo_dir/tools/catalog.tsv" "$catalog_before"
-    printf 'scodex: downloading repository update\n'
+    printf 'monke: downloading repository update\n'
     if ! timeout 10s git -C "$repo_dir" pull --ff-only --quiet >>"$log_file" 2>&1; then
         rm -f -- "$catalog_before"
         log "pull failed"
-        printf 'scodex: update failed, continuing codex\n'
+        printf 'monke: update failed, continuing codex\n'
         return 0
     fi
     if [[ $(read_pref "$preferences_file" tools 0) == 1 ]]; then
@@ -143,21 +143,21 @@ install_update() {
     if ! run_logged_with_heartbeat 'applying the updated configuration' \
         "$repo_dir/install.sh" --apply-saved; then
         log "install failed"
-        printf 'scodex: install failed, continuing codex\n'
+        printf 'monke: install failed, continuing codex\n'
         return 0
     fi
-    printf 'scodex: finalizing update\n'
+    printf 'monke: finalizing update\n'
     current_commit=$(git -C "$repo_dir" rev-parse HEAD 2>>"$log_file")
     printf '%s\n' "$current_commit" >"$deployed_file"
-    printf 'scodex: update installed %s\n' "${current_commit:0:8}"
+    printf 'monke: update installed %s\n' "${current_commit:0:8}"
     update_installed=1
     if [[ -n $new_tools ]]; then
-        printf 'scodex: new optional tools are available: %s\n' \
+        printf 'monke: new optional tools are available: %s\n' \
             "$(printf '%s\n' "$new_tools" | paste -sd, -)"
         if (( merge_pending == 1 )); then
-            printf 'scodex: review your tool selection before continuing\n'
+            printf 'monke: review your tool selection before continuing\n'
         else
-            printf 'scodex: optional tools are disabled; run `scodex tools configure` to enable them\n'
+            printf 'monke: optional tools are disabled; run `monke tools configure` to enable them\n'
         fi
     fi
     return 0
@@ -166,18 +166,18 @@ install_update() {
 set_snooze() {
     set_state update_snooze_until "$(( $(date +%s) + 86400 ))"
     set_state update_snoozed_commit "$remote_commit"
-    printf 'scodex: update postponed for 24h\n'
+    printf 'monke: update postponed for 24h\n'
 }
 
 show_view() {
-    printf 'scodex: update summary:\n'
+    printf 'monke: update summary:\n'
     git -C "$repo_dir" --no-pager log --oneline --decorate -n 10 \
         "$current_commit".."$remote_commit" || true
 }
 
 if [[ -t 0 ]]; then
     while true; do
-        printf 'A Scriptorium update is available.\n'
+        printf 'A Monke update is available.\n'
         printf 'Install (1), Later (default, 2), View (3): '
         if ! IFS= read -r -t 10 choice; then
             choice=2
@@ -203,5 +203,5 @@ if [[ -t 0 ]]; then
     done
 fi
 
-printf 'scodex: update available; start scodex in a terminal to install it\n'
+printf 'monke: update available; start monke in a terminal to install it\n'
 exit 0
