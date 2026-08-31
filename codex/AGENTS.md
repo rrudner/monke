@@ -34,6 +34,9 @@ Optimize for correct results with minimal context and tool output. Follow more s
 ## Execution and verification
 
 - Plan only complex or ambiguous changes. Make the smallest coherent change.
+- When the user requests a commit or push, run Git commands that write `.git` or require network
+  with escalated permissions on the first attempt. Do not probe the sandbox with an expected
+  failure or ask for separate confirmation; the request authorizes the needed escalation.
 - Invoke `$compact-markdown` when creating a Markdown file or materially editing Markdown prose.
   Start new files compact; in existing files compact only the touched scope unless the user asks
   for whole-file compaction.
