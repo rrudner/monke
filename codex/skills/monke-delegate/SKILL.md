@@ -1,6 +1,6 @@
 ---
 name: monke-delegate
-description: Delegate substantial independent coding, exploration, research, review, log analysis, testing, or implementation when a concise leaf agent is likely to reduce main-thread context or useful work can run concurrently. Keep small single-goal work local. Choose the cheapest model likely to succeed and do not ask permission for qualifying delegation.
+description: Delegate substantial independent coding, exploration, research, review, log analysis, testing, or implementation when a concise leaf agent is likely to reduce main-thread context or useful work can run concurrently. Keep small single-goal work local. Route work across Spark, Luna, Terra, Sol, and Astra without asking permission for qualifying delegation.
 ---
 
 # Delegate
@@ -49,8 +49,10 @@ Honor an explicit model choice. Otherwise choose the first model likely to finis
   checks, and summaries. This is the lightweight fallback.
 - `gpt-5.6-terra`: use for everyday debugging, review, and scoped implementation needing normal
   reasoning or tool use.
-- `gpt-5.6-sol`: reserve for ambiguous architecture, security-sensitive analysis, difficult
-  multi-step reasoning, or one escalation after a smaller model lacks confidence.
+- `gpt-5.6-sol`: use for difficult but bounded architecture, security-sensitive analysis,
+  multi-step reasoning, or one escalation after Terra lacks confidence.
+- `gpt-6-astra`: reserve for the most demanding, cross-cutting, or exceptionally ambiguous work,
+  or one escalation after Sol lacks confidence.
 
 Use low reasoning for clear work, medium for normal coding, and more only when needed.
 
@@ -77,7 +79,7 @@ Wait for the worker and reuse it for one focused follow-up. Forward only concise
 verify material claims or edits at the narrowest boundary.
 
 Within one task, escalate at most once: Spark to Luna for availability, Luna to Terra for
-reasoning, or Terra to Sol for ambiguity. A later Spark retry after its cooldown starts a new
-availability attempt and is not an escalation of the earlier task. Do not escalate merely for
-different wording. For writes, assign one writer at a time and do not edit the same files
-concurrently in the parent.
+reasoning, Terra to Sol for ambiguity, or Sol to Astra for exceptional complexity. A later Spark
+retry after its cooldown starts a new availability attempt and is not an escalation of the earlier
+task. Do not escalate merely for different wording. For writes, assign one writer at a time and do
+not edit the same files concurrently in the parent.

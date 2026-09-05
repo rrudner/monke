@@ -62,6 +62,10 @@ if grep -q 'including small searches' "$test_root/home/.codex/AGENTS.md"; then
 fi
 grep -q 'Default to local work.' \
     "$test_root/home/.codex/skills/monke-delegate/SKILL.md"
+grep -q '`gpt-6-astra`: reserve for the most demanding' \
+    "$test_root/home/.codex/skills/monke-delegate/SKILL.md"
+grep -q 'Sol to Astra for exceptional complexity' \
+    "$test_root/home/.codex/skills/monke-delegate/SKILL.md"
 grep -q '^alias user_command=true$' "$test_root/home/.bashrc"
 
 legacy_profile_home=$test_root/legacy-profile-home
