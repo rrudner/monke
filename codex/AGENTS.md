@@ -52,7 +52,10 @@ Optimize for correct results with minimal context and tool output. Follow more s
   completeness, safety, or clarity.
 - Avoid generic AI prose and em or en dashes. Keep command output small and report only decisive
   errors or changed hunks, never complete logs, large diffs, generated files, or data dumps.
-- Keep operational Markdown non-duplicative and new project notes normally under 120 lines.
+- Keep documentation concise and avoid duplicating maintained data. For configuration or state
+  maintained elsewhere, document the authoritative location and how to find it instead of copying
+  values, lists, or exclusions. Record concrete values only when explicitly requested or needed to
+  explain or reverse a change; label historical values accordingly.
 
 ## Handoff
 
