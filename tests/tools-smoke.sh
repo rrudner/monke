@@ -75,6 +75,15 @@ grep -q $'^sops\tlocal\t1.2.3\tsops$' \
     "$local_home/.config/monke/tools.state"
 grep -q 'export PATH=.*mise/shims' "$local_home/.config/monke/tools-env.sh"
 
+# Reapplying a managed tool reuses its saved version without resolving latest or reinstalling.
+: >"$MISE_TEST_LOG"
+PATH="$install_bin:$test_root/bin:/usr/bin:/bin" HOME="$local_home" \
+    "$repo_dir/scripts/tools-manager.sh" apply \
+    >"$test_root/local-sops-reuse.log"
+grep -q $'^sops\tlocal\t1.2.3\tsops$' \
+    "$local_home/.config/monke/tools.state"
+! grep -Eq '^(latest|install) ' "$MISE_TEST_LOG"
+
 # A system command later in PATH must replace a previously managed copy.
 system_bin=$test_root/system-bin
 mkdir -p -- "$system_bin" "$shim_dir"

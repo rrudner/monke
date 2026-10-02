@@ -141,7 +141,9 @@ system_command_path() {
 
 write_runtime_files() {
     local include_system=${1:-1}
+    local reuse_existing=${2:-0}
     local name command_name mise_id default tier label description when_to_use provider version
+    local version_ready
     local command_path previous_provider previous_version local_installed=0 managed_changed=0
     local node_version node_major required_node browser_required=0 browser_path playwright_installer
     local state_tmp config_tmp env_tmp capabilities_tmp
@@ -158,13 +160,13 @@ write_runtime_files() {
 
     while IFS=$'\t' read -r name command_name mise_id default tier label description when_to_use; do
         command_path=$(system_command_path "$command_name" 2>/dev/null || true)
+        previous_provider=$(awk -F '\t' -v name="$name" '$1 == name {print $2}' \
+            "$state_file" 2>/dev/null || true)
+        previous_version=$(awk -F '\t' -v name="$name" '$1 == name {print $3}' \
+            "$state_file" 2>/dev/null || true)
         if [[ -n $command_path && $include_system == 1 ]]; then
             provider=system
             version=$(command_version "$command_path")
-            previous_provider=$(awk -F '\t' -v name="$name" '$1 == name {print $2}' \
-                "$state_file" 2>/dev/null || true)
-            previous_version=$(awk -F '\t' -v name="$name" '$1 == name {print $3}' \
-                "$state_file" 2>/dev/null || true)
             if [[ $previous_provider == local && -n $previous_version && -x $mise_bin ]]; then
                 mise_env
                 if "$mise_bin" uninstall "$mise_id@$previous_version"; then
@@ -198,9 +200,18 @@ write_runtime_files() {
             fi
             bootstrap_mise || continue
             mise_env
-            version=$($mise_bin latest "$mise_id" 2>/dev/null || true)
+            version=
+            version_ready=0
+            if (( reuse_existing == 1 )) && [[ $previous_provider == local && -n $previous_version ]]; then
+                if "$mise_bin" where "$mise_id@$previous_version" >/dev/null 2>&1 \
+                    || "$mise_bin" install "$mise_id@$previous_version"; then
+                    version=$previous_version
+                    version_ready=1
+                fi
+            fi
+            [[ -n $version ]] || version=$($mise_bin latest "$mise_id" 2>/dev/null || true)
             [[ -n $version ]] || { printf 'Could not resolve %s.\n' "$name" >&2; continue; }
-            if "$mise_bin" install "$mise_id@$version"; then
+            if (( version_ready == 1 )) || "$mise_bin" install "$mise_id@$version"; then
                 printf '"%s" = "%s"\n' "$mise_id" "$version" >>"$config_tmp"
                 provider=local
                 local_installed=1
@@ -251,15 +262,22 @@ write_runtime_files() {
     fi
     if (( browser_required )); then
         export PLAYWRIGHT_BROWSERS_PATH=$cache_root/playwright
-        playwright_installer=$(system_command_path playwright-cli 2>/dev/null || true)
-        [[ -n $playwright_installer ]] \
-            || playwright_installer=$data_root/mise/shims/playwright-cli
-        if [[ -x $playwright_installer ]]; then
-            "$playwright_installer" install-browser \
-                || printf 'Could not install Chromium; browser tools may be unavailable.\n' >&2
+        browser_path=
+        if [[ -d $PLAYWRIGHT_BROWSERS_PATH ]]; then
+            browser_path=$(find "$PLAYWRIGHT_BROWSERS_PATH" -type f -name chrome -perm -u+x \
+                2>/dev/null | sort -V | tail -n 1)
         fi
-        browser_path=$(find "$PLAYWRIGHT_BROWSERS_PATH" -type f -name chrome -perm -u+x \
-            2>/dev/null | sort -V | tail -n 1)
+        if [[ -z $browser_path ]]; then
+            playwright_installer=$(system_command_path playwright-cli 2>/dev/null || true)
+            [[ -n $playwright_installer ]] \
+                || playwright_installer=$data_root/mise/shims/playwright-cli
+            if [[ -x $playwright_installer ]]; then
+                "$playwright_installer" install-browser \
+                    || printf 'Could not install Chromium; browser tools may be unavailable.\n' >&2
+            fi
+            browser_path=$(find "$PLAYWRIGHT_BROWSERS_PATH" -type f -name chrome -perm -u+x \
+                2>/dev/null | sort -V | tail -n 1)
+        fi
         printf 'export PLAYWRIGHT_BROWSERS_PATH=%q\n' "$cache_root/playwright" >>"$env_tmp"
         if [[ -n $browser_path ]]; then
             printf 'export CHROME_PATH=%q\n' "$browser_path" >>"$env_tmp"
@@ -457,7 +475,7 @@ case $action in
         [[ $# -ge 2 ]] || { printf 'Usage: monke tools catalog-diff BEFORE_CATALOG AFTER_CATALOG [UPDATE_PENDING]\n' >&2; exit 2; }
         catalog_diff "$1" "$2" "${3:-0}"
         ;;
-    apply) write_runtime_files ;;
+    apply) write_runtime_files 1 1 ;;
     status) status_tools ;;
     system-summary) system_summary ;;
     system-replacements) system_replacements ;;

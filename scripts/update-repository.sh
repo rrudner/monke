@@ -6,7 +6,9 @@ state_dir=${XDG_STATE_HOME:-"$HOME/.local/state"}/monke
 preferences_file=$config_dir/preferences
 state_file=$state_dir/update.state
 log_file=$state_dir/last-update.log
+log_archive_dir=$state_dir/update-logs
 deployed_file=$state_dir/deployed-commit
+tools_state_file=$config_dir/tools.state
 update_installed=0
 repo_dir_script=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 tools_manager=$repo_dir_script/tools-manager.sh
@@ -58,17 +60,28 @@ run_logged_with_heartbeat() {
 }
 
 mkdir -p -- "$state_dir"
+exec 9>"$state_dir/update.lock"
+if ! flock -n 9; then
+    printf 'monke: another update is already running (details: %s)\n' "$log_file"
+    exit 0
+fi
+
+mkdir -p -- "$log_archive_dir"
+if [[ -s $log_file ]]; then
+    archived_log=$log_archive_dir/$(date +%Y%m%dT%H%M%S)-$$.log
+    mv -- "$log_file" "$archived_log"
+fi
 : >"$log_file"
+mapfile -t archived_logs < <(find "$log_archive_dir" -maxdepth 1 -type f -name '*.log' \
+    -printf '%p\n' | sort)
+while (( ${#archived_logs[@]} > 10 )); do
+    rm -f -- "${archived_logs[0]}"
+    archived_logs=("${archived_logs[@]:1}")
+done
 
 repo_dir=$(read_pref "$preferences_file" repo_dir "")
 if [[ -z $repo_dir || ! -d $repo_dir/.git ]]; then
     log "missing repository path"
-    exit 0
-fi
-
-exec 9>"$state_dir/update.lock"
-if ! flock -n 9; then
-    log "another update is already running"
     exit 0
 fi
 
@@ -163,6 +176,28 @@ install_update() {
     return 0
 }
 
+offer_tools_update() {
+    local choice status
+    [[ -s $tools_state_file ]] || return 0
+    grep -q $'\tlocal\t' "$tools_state_file" || return 0
+    printf 'Update locally managed tools now? [y/N] '
+    if ! IFS= read -r -t 10 choice; then
+        printf '\n'
+        choice=n
+    fi
+    case ${choice,,} in
+        y|yes)
+            status=0
+            run_logged_with_heartbeat 'updating locally managed tools' \
+                "$tools_manager" update || status=$?
+            if (( status != 0 )); then
+                log "tool update failed"
+                printf 'monke: tool update failed; repository update remains installed\n'
+            fi
+            ;;
+    esac
+}
+
 set_snooze() {
     set_state update_snooze_until "$(( $(date +%s) + 86400 ))"
     set_state update_snoozed_commit "$remote_commit"
@@ -186,6 +221,7 @@ if [[ -t 0 ]]; then
             1)
                 install_update
                 if (( update_installed == 1 )); then
+                    offer_tools_update
                     exit 10
                 fi
                 exit 0

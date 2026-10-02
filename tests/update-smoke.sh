@@ -60,13 +60,51 @@ shell=bash
 shell_rc=
 developer_instructions_file=$work_base/local/.agents/skills/monke-language/SKILL.md
 EOF
-printf '%s\n' ripgrep fd jq yq shellcheck >"$HOME/.config/monke/tools.selected"
+printf '%s\n' ripgrep fd jq yq shellcheck sops >"$HOME/.config/monke/tools.selected"
+mkdir -p -- "$HOME/.local/share/monke/runtime"
+cat >"$HOME/.local/share/monke/runtime/mise" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >>"$MISE_TEST_LOG"
+case ${1:-} in
+    latest) printf '1.2.3\n' ;;
+    where) exit 0 ;;
+esac
+exit 0
+EOF
+chmod +x "$HOME/.local/share/monke/runtime/mise"
+printf 'sops\tlocal\t1.2.3\tsops\n' >"$HOME/.config/monke/tools.state"
+export MISE_TEST_LOG=$test_root/update-mise.log
+: >"$MISE_TEST_LOG"
 
 export CODEX_TEST_LOG=$codex_log
+
+# A held updater lock must leave the previous log untouched.
+state_dir=$HOME/.local/state/monke
+mkdir -p -- "$state_dir"
+printf 'keep this log\n' >"$state_dir/last-update.log"
+exec 8>"$state_dir/update.lock"
+flock -n 8
+MONKE_LAUNCH_UPDATE=1 "$repo_dir/scripts/update-repository.sh" \
+    >"$test_root/locked-update.log"
+[[ $(<"$state_dir/last-update.log") == 'keep this log' ]]
+exec 8>&-
 
 # The repository updater runs only through the launcher.
 "$repo_dir/scripts/update-repository.sh" >"$test_root/login-update.log"
 [[ ! -s "$test_root/login-update.log" ]]
+
+# Successful updater runs archive the prior log and keep only ten archives.
+archive_dir=$state_dir/update-logs
+mkdir -p -- "$archive_dir"
+for archive_no in {1..11}; do
+    printf -v archive_name '20200101T0000%02d-0.log' "$archive_no"
+    printf 'archive %s\n' "$archive_no" >"$archive_dir/$archive_name"
+done
+printf 'previous run\n' >"$state_dir/last-update.log"
+MONKE_LAUNCH_UPDATE=1 "$repo_dir/scripts/update-repository.sh" \
+    >"$test_root/archive-update.log"
+[[ $(find "$archive_dir" -maxdepth 1 -type f -name '*.log' | wc -l) -eq 10 ]]
+grep -lqx 'previous run' "$archive_dir"/*.log
 
 # launch path should invoke codex even when updates are available
 before=$(git -C "$work_base/local" rev-parse HEAD)
@@ -76,7 +114,7 @@ grep -q '^args:--profile monke -c shell_environment_policy.inherit=all -c shell_
     "$codex_log"
 
 # Interactive startup should apply an update, restart once, and continue to Codex.
-printf '1\n\n' | CODEX_TEST_LOG=$test_root/update-call.log \
+printf '1\nn\n\n' | CODEX_TEST_LOG=$test_root/update-call.log \
     script -qec "'$repo_dir/bin/monke'" /dev/null >"$test_root/update-output.log"
 after=$(git -C "$work_base/local" rev-parse HEAD)
 if [[ "$before" == "$after" ]]; then
@@ -91,6 +129,8 @@ fi
 grep -q 'monke: downloading repository update' "$test_root/update-output.log"
 grep -q 'monke: applying the updated configuration' "$test_root/update-output.log"
 grep -q 'monke: finalizing update' "$test_root/update-output.log"
+grep -q 'Update locally managed tools now? \[y/N\]' "$test_root/update-output.log"
+! grep -q '^upgrade --bump$' "$MISE_TEST_LOG"
 grep -qx 'tools=1' "$HOME/.config/monke/preferences"
 grep -qx 'developer_instructions=1' "$HOME/.config/monke/preferences"
 grep -Fxq "developer_instructions_file=$work_base/local/codex/monke-personality.md" \
@@ -99,6 +139,20 @@ grep -q $'^ripgrep\tsystem\t' "$HOME/.config/monke/tools.state"
 # Interactive restart reviews and clears the pending catalog migration.
 [[ ! -e $HOME/.local/state/monke/tools-reconfigure-required ]]
 ! grep -qx future-tool "$HOME/.config/monke/tools.selected"
+
+# The prompt accepts yes, updates local tools, and keeps the repository deployment marker.
+git -C "$work_base/upstream" config user.email test@example.invalid
+git -C "$work_base/upstream" config user.name Test
+printf 'future two\n' >>"$work_base/upstream/file.txt"
+git -C "$work_base/upstream" add file.txt
+git -C "$work_base/upstream" commit -qm future-two
+git -C "$work_base/upstream" push > /dev/null
+printf '1\ny\n' | CODEX_TEST_LOG=$test_root/update-yes-call.log \
+    script -qec "'$repo_dir/bin/monke'" /dev/null >"$test_root/update-yes-output.log"
+grep -q 'Update locally managed tools now? \[y/N\]' "$test_root/update-yes-output.log"
+grep -qx 'upgrade --bump' "$MISE_TEST_LOG"
+[[ $(<"$HOME/.local/state/monke/deployed-commit") == \
+    "$(git -C "$work_base/local" rev-parse HEAD)" ]]
 
 # The short tools command remains the public status view.
 "$repo_dir/bin/monke" tools >"$test_root/tools-status.log"

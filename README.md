@@ -110,6 +110,10 @@ a newer commit is shown immediately.
 Updates are fast-forward-only and skipped for a dirty or divergent working tree. Network, Git, or
 installation failures never prevent Codex from starting.
 
+An update reuses installed local tool versions, then offers a separate, default-no tool upgrade.
+The current log is `$XDG_STATE_HOME/monke/last-update.log`; the ten previous attempts remain under
+`$XDG_STATE_HOME/monke/update-logs/`, including interrupted runs.
+
 When an update adds optional tools, Monke reports them. If enabled, the next interactive
 `monke` reopens the complete selector with existing choices preselected. New `(new)` entries stay
 unchecked until explicit selection; non-interactive launches leave selection pending and show the
