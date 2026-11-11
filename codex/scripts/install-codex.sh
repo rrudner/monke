@@ -115,8 +115,9 @@ for profile in cheap normal hard; do
         normal) profile_model='gpt-5.6-terra' ;;
         hard) profile_model='gpt-5.6-sol' ;;
     esac
-    sed "s/^model = \".*\"/model = \"$profile_model\"/" \
-        "$package_dir/profiles/monke.config.toml" >"$legacy_profile"
+    sed -e "s/^model = \".*\"/model = \"$profile_model\"/" \
+        -e 's|skills/delegate/SKILL.md|skills/monke-delegate/SKILL.md|' \
+        "$package_dir/config.toml" >"$legacy_profile"
     retire_if_identical "$codex_home/monke-$profile.config.toml" "$legacy_profile"
     awk '/^model =/{emit=1} emit && NF==0{exit} emit{print}' \
         "$legacy_profile" >"$legacy_profile_model"

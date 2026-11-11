@@ -204,8 +204,9 @@ for profile in cheap normal hard; do
         normal) profile_model='gpt-5.6-terra' ;;
         hard) profile_model='gpt-5.6-sol' ;;
     esac
-    sed "s/^model = \".*\"/model = \"$profile_model\"/" \
-        "$repo_dir/codex/profiles/monke.config.toml" \
+    sed -e "s/^model = \".*\"/model = \"$profile_model\"/" \
+        -e 's|skills/delegate/SKILL.md|skills/monke-delegate/SKILL.md|' \
+        "$repo_dir/codex/config.toml" \
         >"$legacy_profile"
     if [[ $purge == 1 ]]; then
         remove_owned_file "$codex_home/monke-$profile.config.toml" 'Codex legacy profile'

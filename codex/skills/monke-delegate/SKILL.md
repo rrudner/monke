@@ -1,6 +1,6 @@
 ---
 name: monke-delegate
-description: Delegate substantial independent coding, exploration, research, review, log analysis, testing, or implementation when a concise leaf agent is likely to reduce main-thread context or useful work can run concurrently. Keep small single-goal work local. Route work across Spark, Luna, Terra, Sol, and Astra without asking permission for qualifying delegation.
+description: Delegate substantial independent coding, exploration, research, review, log analysis, testing, or implementation when a concise leaf agent is likely to reduce main-thread context or useful work can run concurrently. Keep small single-goal work local. Route work across Luna, Terra, Sol, and Astra without asking permission for qualifying delegation.
 ---
 
 # Delegate
@@ -36,25 +36,21 @@ tokens. Leaf workers never delegate.
 
 Honor an explicit model choice. Otherwise choose the first model likely to finish correctly:
 
-- `gpt-5.3-codex-spark`: prefer for narrow coding, targeted exploration, focused fixes, and test
-  triage. Test availability by direct spawn, never subscription, account, startup, cache, tool
-  metadata, or suggested-model inspection. Request Spark on the session's first suitable
-  delegation; success proves session availability. Only an explicit permanent authorization,
-  unsupported-model, or account-access error disables it for that session. For timeouts, overload,
-  rate limits, or temporary failures, use Luna for the task and retry Spark on the first suitable
-  delegation after the supplied delay, or after 10 minutes when absent. Success clears the failure.
-  Do not retry before cooldown or treat unrelated tool, sandbox, filesystem, network, or task errors
-  as model unavailability.
-- `gpt-5.6-luna`: use for targeted search, extraction, classification, transformation, simple
-  checks, and summaries. This is the lightweight fallback.
-- `gpt-5.6-terra`: use for everyday debugging, review, and scoped implementation needing normal
-  reasoning or tool use.
-- `gpt-5.6-sol`: use for difficult but bounded architecture, security-sensitive analysis,
-  multi-step reasoning, or one escalation after Terra lacks confidence.
+- `gpt-6-luna`: default for targeted search, extraction, classification, transformation,
+  summaries, narrow coding, focused fixes, and test triage.
+- `gpt-6.1-terra`: use for visual reasoning, computer use, concise writing, and scoped code
+  fixes with clear inputs and checks.
+- `gpt-6.1-sol`: use for complex coding, debugging, review, architecture, security-sensitive
+  analysis, or one escalation after Terra lacks confidence.
 - `gpt-6-astra`: reserve for the most demanding, cross-cutting, or exceptionally ambiguous work,
   or one escalation after Sol lacks confidence.
 
 Use low reasoning for clear work, medium for normal coding, and more only when needed.
+
+Use models exposed by the current runtime. If a selected model is unavailable, choose an
+available model suited to the same task or keep the work local. Do not probe retired models or
+infer access from a subscription. Do not treat tool, sandbox, filesystem, or network errors as
+model unavailability.
 
 ## Delegate
 
@@ -78,8 +74,7 @@ Give exact paths and symbols; do not paste readable chat history, files, or logs
 Wait for the worker and reuse it for one focused follow-up. Forward only concise findings and
 verify material claims or edits at the narrowest boundary.
 
-Within one task, escalate at most once: Spark to Luna for availability, Luna to Terra for
-reasoning, Terra to Sol for ambiguity, or Sol to Astra for exceptional complexity. A later Spark
-retry after its cooldown starts a new availability attempt and is not an escalation of the earlier
-task. Do not escalate merely for different wording. For writes, assign one writer at a time and do
-not edit the same files concurrently in the parent.
+Within one task, escalate at most once to the next suitable model: Terra for scoped visual work,
+Sol for complex coding or ambiguity, or Astra for exceptional complexity. Do not escalate merely
+for different wording. For writes, assign one writer at a time and do not edit the same files
+concurrently in the parent.

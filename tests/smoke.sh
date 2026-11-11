@@ -28,9 +28,13 @@ CODEX_HOME="$test_root/home/.codex" \
     "$repo_dir/install.sh" --without-tools --shell bash >"$test_root/install.log"
 
 cmp -s "$test_root/original-config.toml" "$test_root/home/.codex/config.toml"
-grep -q '^model = "gpt-5.6-sol"$' \
+grep -q '^model = "gpt-6.1-sol"$' \
     "$test_root/home/.codex/monke.config.toml"
-grep -q '^default_subagent_model = "gpt-5.3-codex-spark"$' \
+grep -q '^model_reasoning_effort = "low"$' \
+    "$test_root/home/.codex/monke.config.toml"
+grep -q '^default_subagent_model = "gpt-6-luna"$' \
+    "$test_root/home/.codex/monke.config.toml"
+grep -q '^default_subagent_reasoning_effort = "low"$' \
     "$test_root/home/.codex/monke.config.toml"
 [[ -f "$test_root/home/.codex/skills/reuse-first/SKILL.md" ]]
 [[ -f "$test_root/home/.codex/skills/reuse-first/agents/openai.yaml" ]]
@@ -62,22 +66,37 @@ if grep -q 'including small searches' "$test_root/home/.codex/AGENTS.md"; then
 fi
 grep -q 'Default to local work.' \
     "$test_root/home/.codex/skills/monke-delegate/SKILL.md"
-grep -q '`gpt-6-astra`: reserve for the most demanding' \
+grep -q '`gpt-6-luna`:' \
     "$test_root/home/.codex/skills/monke-delegate/SKILL.md"
-grep -q 'Sol to Astra for exceptional complexity' \
+grep -q '`gpt-6.1-terra`:' \
     "$test_root/home/.codex/skills/monke-delegate/SKILL.md"
+grep -q '`gpt-6.1-sol`:' \
+    "$test_root/home/.codex/skills/monke-delegate/SKILL.md"
+grep -q '`gpt-6-astra`:' \
+    "$test_root/home/.codex/skills/monke-delegate/SKILL.md"
+if grep -Eqi 'gpt-5\.3-codex-spark|spark-first|retry spark' \
+    "$test_root/home/.codex/skills/monke-delegate/SKILL.md"; then
+    printf 'Installed Monke delegation skill retained Spark-first routing.\n' >&2
+    exit 1
+fi
 grep -q '^alias user_command=true$' "$test_root/home/.bashrc"
 
 legacy_profile_home=$test_root/legacy-profile-home
 mkdir -p -- "$legacy_profile_home/.codex"
 cp -- "$test_root/home/.codex/monke.config.toml" "$legacy_profile_home/.codex/monke.config.toml"
-cp -- "$test_root/home/.codex/monke.config.toml" "$legacy_profile_home/.codex/monke-cheap.config.toml"
-cp -- "$test_root/home/.codex/monke.config.toml" "$legacy_profile_home/.codex/monke-normal.config.toml"
-cp -- "$test_root/home/.codex/monke.config.toml" "$legacy_profile_home/.codex/monke-hard.config.toml"
+cp -- "$repo_dir/codex/config.toml" "$legacy_profile_home/.codex/monke-cheap.config.toml"
+cp -- "$repo_dir/codex/config.toml" "$legacy_profile_home/.codex/monke-normal.config.toml"
+cp -- "$repo_dir/codex/config.toml" "$legacy_profile_home/.codex/monke-hard.config.toml"
+for profile in cheap normal hard; do
+    sed -i 's#skills/delegate/SKILL.md#skills/monke-delegate/SKILL.md#' \
+        "$legacy_profile_home/.codex/monke-$profile.config.toml"
+done
 sed -i 's/^model = "gpt-5.6-sol"/model = "gpt-5.6-luna"/' \
     "$legacy_profile_home/.codex/monke-cheap.config.toml"
 sed -i 's/^model = "gpt-5.6-sol"/model = "gpt-5.6-terra"/' \
     "$legacy_profile_home/.codex/monke-normal.config.toml"
+printf '\n# User customization\n' \
+    >>"$legacy_profile_home/.codex/monke-normal.config.toml"
 for profile in cheap normal hard; do
     awk '/^model =/{emit=1} emit && NF==0{exit} emit{print}' \
         "$legacy_profile_home/.codex/monke-$profile.config.toml" \
@@ -90,8 +109,9 @@ CODEX_HOME="$legacy_profile_home/.codex" \
 [[ ! -e $legacy_profile_home/.codex/normal.config.toml ]]
 [[ ! -e $legacy_profile_home/.codex/hard.config.toml ]]
 [[ ! -e $legacy_profile_home/.codex/monke-cheap.config.toml ]]
-[[ ! -e $legacy_profile_home/.codex/monke-normal.config.toml ]]
 [[ ! -e $legacy_profile_home/.codex/monke-hard.config.toml ]]
+grep -q '^# User customization$' \
+    "$legacy_profile_home/.codex/monke-normal.config.toml"
 [[ -f $legacy_profile_home/.codex/monke.config.toml ]]
 repo_pref_test=$test_root/home/.config/monke/preferences-preferences-reader
 cat >"$repo_pref_test" <<'EOF'
@@ -249,6 +269,15 @@ printf 'preserve backup\n' >"$uninstall_home/.config/monke/preferences.backup-us
 PATH="$test_root/bin:$PATH" SHELL=/bin/bash HOME="$uninstall_home" \
 CODEX_HOME="$uninstall_home/.codex" \
     "$repo_dir/install.sh" --without-tools --shell bash >"$test_root/uninstall-install.log"
+cp -- "$legacy_profile_home/.codex/monke-normal.config.toml" \
+    "$uninstall_home/.codex/monke-normal.config.toml"
+cp -- "$repo_dir/codex/config.toml" \
+    "$uninstall_home/.codex/monke-hard.config.toml"
+sed -i 's#skills/delegate/SKILL.md#skills/monke-delegate/SKILL.md#' \
+    "$uninstall_home/.codex/monke-hard.config.toml"
+awk '/^model =/{emit=1} emit && NF==0{exit} emit{print}' \
+    "$uninstall_home/.codex/monke-hard.config.toml" \
+    >"$uninstall_home/.codex/hard.config.toml"
 PATH="$test_root/bin:$PATH" HOME="$uninstall_home" MONKE_SHELL=zsh \
     "$repo_dir/scripts/install-shell-hook.sh" >"$test_root/uninstall-zsh-hook.log"
 PATH="$test_root/bin:$PATH" HOME="$uninstall_home" MONKE_SHELL=bash \
@@ -266,6 +295,10 @@ CODEX_HOME="$uninstall_home/.codex" \
 ! grep -q '^# >>> monke >>>$' "$uninstall_home/.zshrc"
 ! grep -q '^# >>> monke >>>$' "$uninstall_home/.customrc"
 [[ ! -e $uninstall_home/.codex/monke.config.toml ]]
+[[ ! -e $uninstall_home/.codex/monke-hard.config.toml ]]
+[[ ! -e $uninstall_home/.codex/hard.config.toml ]]
+grep -q '^# User customization$' \
+    "$uninstall_home/.codex/monke-normal.config.toml"
 [[ ! -e $uninstall_home/.codex/skills/compact-markdown ]]
 [[ ! -e $uninstall_home/.codex/skills/reuse-first ]]
 [[ ! -e $uninstall_home/.codex/skills/btw ]]

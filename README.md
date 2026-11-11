@@ -7,8 +7,9 @@ login. A competent monkey crew keeps the terminal tools sorted; you choose the j
 
 ## Quick start 🍌
 
-Requires OpenAI Codex CLI, Git, Bash, standard GNU utilities, and util-linux (`flock`). Monke is
-an independent third-party project and is not affiliated with or endorsed by OpenAI.
+Requires OpenAI Codex CLI 0.159.0 or later, Git, Bash, standard GNU utilities, and util-linux
+(`flock`). Monke is an independent third-party project and is not affiliated with or endorsed by
+OpenAI.
 
 ```bash
 git clone https://github.com/rrudner/monke.git ~/.local/share/monke/repo
@@ -69,6 +70,12 @@ monke stats                   # Show readable token usage for the current projec
 `monke` loads its namespaced Sol profile, exposes only the selected tool environment, optionally
 checks for updates, then starts Codex. Your shell changes only through the selected small launcher.
 
+Model and reasoning defaults live in [the profile](codex/profiles/monke.config.toml); task routing
+lives in [monke-delegate](codex/skills/monke-delegate/SKILL.md). Override both independently with
+`monke --model MODEL -c model_reasoning_effort=medium`. A model override alone keeps the profile's
+reasoning effort. Reapply an update with `./install.sh --apply-saved`; changed managed assets are
+backed up before replacement.
+
 Each `monke` session loads the repository's Monke instructions and passes them through Codex's
 `developer_instructions` setting, identifies the
 session as Monke, and reads it once. Use
@@ -78,9 +85,8 @@ behavior. A missing or invalid file produces one warning and does not prevent Co
 
 Monke keeps small, single-goal work local. Before broad exploration it reads only current
 thread token counters through `monke context`, lowering the delegation threshold as the main
-context fills. It delegates only unopened file or log context replaceable by a concise result; a
-separate Spark usage limit alone is not a token saving. Missing or incompatible telemetry uses the
-conservative low-pressure threshold.
+context fills. It delegates only unopened file or log context replaceable by a concise result.
+Missing or incompatible telemetry uses the conservative low-pressure threshold.
 
 `monke stats` sums current-project-thread telemetry, including delegates, and reports the complete
 thread, last completed launcher run (including `resume`), and last main-agent turn. Its project
