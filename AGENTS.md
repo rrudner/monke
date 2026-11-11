@@ -8,6 +8,8 @@
 
 ## Implementation rules
 
+- Never install, reinstall, or manually update the user's Monke installation. Publish repository
+  changes and releases; leave installed files to Monke's update mechanism.
 - Before work that may overlap existing behavior or ownership, invoke `$reuse-first`, choose one
   reuse/extend/new path, and propose consolidation or a scoped migration follow-up.
 - Use portable Bash and keep external dependencies limited to commands documented in `README.md`.
